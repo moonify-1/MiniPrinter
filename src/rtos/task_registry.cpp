@@ -38,6 +38,8 @@ void RegisterTask(TaskId id, const char* name, TaskHandle_t handle) {
   entry.id = id;
   entry.name = (name != nullptr) ? name : kUnnamedTaskName;
   entry.handle = handle;
+  entry.lastHeartbeat = xTaskGetTickCount();
+  entry.hasHeartbeat = false;
   entry.isRegistered = true;
 }
 

@@ -5,6 +5,7 @@
 
 #include "rtos/rtos_objects.h"
 #include "rtos/task_registry.h"
+#include "services/health_service.h"
 #include "services/log_service.h"
 
 namespace {
@@ -56,8 +57,9 @@ void PrintLogMessage(const mp::LogMsg& msg) {
 // - 日志任务优先级低，避免影响更重要的控制路径。
 // - 心跳周期固定为 1000ms。
 void TaskLogMain(void* /*context*/) {
+  mp::RegisterTask(mp::TaskId::LOGGER, kLogTaskName, xTaskGetCurrentTaskHandle());
   TickType_t lastHeartbeatTick = xTaskGetTickCount();
-  mp::TaskHeartbeat(mp::TaskId::LOGGER);
+  mp::Health_ReportHeartbeat(mp::TaskId::LOGGER);
 
   for (;;) {
     mp::LogMsg msg = {};
@@ -68,7 +70,7 @@ void TaskLogMain(void* /*context*/) {
 
     const TickType_t now = xTaskGetTickCount();
     if ((now - lastHeartbeatTick) >= kHeartbeatPeriodTicks) {
-      mp::TaskHeartbeat(mp::TaskId::LOGGER);
+      mp::Health_ReportHeartbeat(mp::TaskId::LOGGER);
       lastHeartbeatTick = now;
     }
   }

@@ -11,8 +11,10 @@
 #include "config/safety_limits.h"
 #include "rtos/rtos_objects.h"
 #include "rtos/task_registry.h"
+#include "services/health_service.h"
 #include "services/log_service.h"
 #include "tasks/task_log.h"
+#include "tasks/task_monitor.h"
 
 namespace {
 
@@ -68,6 +70,7 @@ void setup() {
   }
 
   mp::Log_Init();
+  mp::Health_Init();
 
   // 创建日志任务失败时，不继续进入后续流程。
   if (!mp::TaskLog_Create()) {
@@ -76,10 +79,17 @@ void setup() {
     return;
   }
 
+  // 监控任务优先级高于日志任务，负责关键任务心跳检查。
+  if (!mp::TaskMonitor_Create()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: TaskMonitor_Create failed");
+    return;
+  }
+
   // 用一条启动日志验证异步日志链路已经可用。
   mp::Log_Info("main", "Async log ready");
 }
 
 void loop() {
-  // Step 06 仍然只保留最小主循环，不写业务逻辑。
+  // Step 07 仍然只保留最小主循环，不写业务逻辑。
 }

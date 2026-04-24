@@ -87,3 +87,18 @@
   - 使用 `python -m platformio run` 编译通过。
 - 下一步建议：
   - 下一步适合把 `qError`、`qCommand`、`qSensor` 等队列逐步替换成真实消息结构，并让更多任务通过 `LogService` 统一输出日志。
+
+## Step 07
+
+- 时间：2026-04-24 13:20:00
+- 状态：已完成
+- 结果：
+  - 新增 `src/services/health_service.h/.cpp`，实现任务心跳上报、健康检查和快照读取。
+  - 新增 `src/tasks/task_monitor.h/.cpp`，实现 100ms 周期监控任务。
+  - `MonitorTask` 优先级高于 `LogTask`，发现关键任务超时后会立即执行 `Bsp_SetAllOutputsSafe()`。
+  - 超时时会设置 `EVT_SAFE_MODE | EVT_ERROR_PENDING`，并记录 `FATAL` 日志。
+  - `LogTask` 与 `MonitorTask` 都已通过 `Health_ReportHeartbeat()` 上报心跳。
+  - `MP_ENABLE_WDT` 已作为预留开关保留，但当前未启用真实硬件 Watchdog。
+  - 使用 `python -m platformio run` 编译通过。
+- 下一步建议：
+  - 下一步适合为 `qError` 和状态服务定义真实错误消息结构，让 MonitorTask 的故障结果不只写日志，还能进入统一错误处理通道。

@@ -15,6 +15,7 @@ namespace mp {
 enum class TaskId : std::uint8_t {
   SYSTEM = 0,   // 系统主控任务。
   LOGGER,       // 日志任务。
+  MONITOR,      // 监控任务。
   ERROR,        // 错误处理任务。
   COMMAND,      // 命令处理任务。
   PRINT_CTRL,   // 打印控制任务。
