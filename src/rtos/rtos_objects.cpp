@@ -4,6 +4,7 @@
 
 #include "services/log_service.h"
 #include "services/sensor_service.h"
+#include "protocol/proto_frame.h"
 
 namespace {
 
@@ -15,6 +16,7 @@ constexpr UBaseType_t kLogQueueLength = 16U;
 constexpr UBaseType_t kDefaultQueueLength = 8U;
 constexpr UBaseType_t kLineQueueLength = 4U;
 constexpr UBaseType_t kSensorQueueLength = 1U;
+constexpr UBaseType_t kCommandQueueLength = 4U;
 
 // 判断 RTOS 对象是否已经完整创建。
 bool AreObjectsReady(const mp::RtosObjects& objects) {
@@ -45,6 +47,13 @@ QueueHandle_t CreateLogQueue(UBaseType_t length) {
 // SensorService 会用 xQueueOverwrite 覆盖旧快照，避免消费者读到积压旧状态。
 QueueHandle_t CreateSensorQueue() {
   return xQueueCreate(kSensorQueueLength, sizeof(mp::SensorSnapshot));
+}
+
+// 创建协议命令队列。
+//
+// ProtocolTask 放入完整 ProtoFrame，CommandTask 取出并分发。
+QueueHandle_t CreateCommandQueue() {
+  return xQueueCreate(kCommandQueueLength, sizeof(mp::ProtoFrame));
 }
 
 // 删除单个队列并清空句柄。
@@ -114,7 +123,7 @@ bool Rtos_CreateObjects() {
   g_rtos.systemEvents = xEventGroupCreate();
   g_rtos.qLog = CreateLogQueue(kLogQueueLength);
   g_rtos.qError = CreatePlaceholderQueue(kDefaultQueueLength);
-  g_rtos.qCommand = CreatePlaceholderQueue(kDefaultQueueLength);
+  g_rtos.qCommand = CreateCommandQueue();
   g_rtos.qPrintCtrl = CreatePlaceholderQueue(kDefaultQueueLength);
   g_rtos.qLineReady = CreatePlaceholderQueue(kLineQueueLength);
   g_rtos.qLineFree = CreatePlaceholderQueue(kLineQueueLength);

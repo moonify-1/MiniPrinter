@@ -151,3 +151,40 @@
   - 使用 `python -m platformio run` 编译通过。
 - 下一步建议：
   - 下一步适合加入错误上报服务，把缺纸、温度非法、低电压和电机故障转换为统一 `AppErrorCode` 或告警事件。
+
+## Step 11
+
+- 时间：2026-04-24 16:10:08
+- 状态：已完成
+- 结果：
+  - 新增 `src/protocol/proto_crc.h/.cpp`，实现 CRC-16/CCITT-FALSE。
+  - 新增 `src/protocol/proto_frame.h`，定义固定帧格式、最大帧长度和固定 payload 缓冲。
+  - 新增 `src/protocol/proto_cmd.h`，定义 `PING`、`GET_INFO`、`GET_STATUS`。
+  - 新增 `src/protocol/proto_parser.h/.cpp`，实现可逐字节喂入的协议解析状态机。
+  - Parser 会校验 magic、协议版本、header_len、payload_len 和 CRC16，最大帧长度限制为 512 bytes。
+  - 新增 `src/services/protocol_service.h/.cpp`，实现完整帧投递和命令响应打包。
+  - 新增 `src/tasks/task_protocol.h/.cpp`，实现基于 Serial 轮询的协议接收任务。
+  - 新增 `src/tasks/task_command.h/.cpp`，实现命令分发任务。
+  - `qCommand` 已从占位队列改为 `ProtoFrame` 队列。
+  - 当前不实现打印命令，不直接操作硬件。
+  - 使用 `python -m platformio run` 编译通过。
+- 下一步建议：
+  - 下一步适合补协议响应测试脚本，自动构造 PING/GET_STATUS 帧并校验返回 CRC。
+
+## Step 12
+
+- 时间：2026-04-24 16:16:08
+- 状态：已完成
+- 结果：
+  - 新增 `src/drivers/storage/drv_nvs.h/.cpp`，封装 Arduino Preferences 作为 NVS 存储入口。
+  - 新增 `src/services/param_service.h/.cpp`，实现参数初始化、加载、快照读取、更新、请求保存和恢复默认。
+  - 新增 `src/tasks/task_param.h/.cpp`，实现低优先级 ParamTask。
+  - 参数默认值来自 `config/default_params.h`，运行时会补齐 CRC32。
+  - NVS 持久化结构使用 `magic/version/length/crc32 + ParamBlock`，加载时会完整校验。
+  - NVS 不可用、参数缺失、版本不匹配、长度不匹配或 CRC 错误时，都会回退默认参数，不阻塞系统启动。
+  - 参数保存通过 `qParam` 请求，由 ParamTask 做 2 秒延迟合并，打印活动期间继续延迟写 Flash。
+  - CommandTask 增加 `GET_PARAM`、`SET_PARAM`、`SAVE_PARAM`、`FACTORY_RESET` 命令，其中 `SET_PARAM` 当前返回 TODO。
+  - 使用 `python -m platformio run` 编译通过。
+  - 已按新要求创建 git commit。
+- 下一步建议：
+  - 下一步适合为 `GET_PARAM/SET_PARAM` 定义正式 payload 格式，避免长期使用文本响应。

@@ -13,8 +13,12 @@
 #include "rtos/task_registry.h"
 #include "services/health_service.h"
 #include "services/log_service.h"
+#include "services/param_service.h"
+#include "tasks/task_command.h"
 #include "tasks/task_log.h"
 #include "tasks/task_monitor.h"
+#include "tasks/task_param.h"
+#include "tasks/task_protocol.h"
 #include "tasks/task_sensor.h"
 #include "tasks/task_system.h"
 
@@ -72,6 +76,8 @@ void setup() {
   }
 
   mp::Log_Init();
+  mp::Param_Init();
+  (void)mp::Param_Load();
   mp::Health_Init();
 
   // 创建日志任务失败时，不继续进入后续流程。
@@ -95,6 +101,27 @@ void setup() {
     return;
   }
 
+  // 参数任务低优先级运行，只负责延迟合并保存请求。
+  if (!mp::TaskParam_Create()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: TaskParam_Create failed");
+    return;
+  }
+
+  // CommandTask 先启动，保证 ProtocolTask 收到完整帧后有消费者。
+  if (!mp::TaskCommand_Create()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: TaskCommand_Create failed");
+    return;
+  }
+
+  // ProtocolTask 当前使用 Serial 简单轮询，后续可替换为 DMA / ring buffer。
+  if (!mp::TaskProtocol_Create()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: TaskProtocol_Create failed");
+    return;
+  }
+
   // 监控任务优先级高于日志任务，负责关键任务心跳检查。
   if (!mp::TaskMonitor_Create()) {
     mp::Bsp_SetAllOutputsSafe();
@@ -107,5 +134,5 @@ void setup() {
 }
 
 void loop() {
-  // Step 10 仍然只保留最小主循环，不写业务逻辑。
+  // Step 11 仍然只保留最小主循环，不写业务逻辑。
 }
