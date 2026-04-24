@@ -117,3 +117,20 @@
   - 使用 `python -m platformio run` 编译通过。
 - 下一步建议：
   - 下一步适合补传感器与板级状态输入，把 `EVT_PAPER_PRESENT`、`EVT_TEMP_OK`、`EVT_BAT_OK` 变成真实数据来源，这样系统状态机才能从 `IDLE` 进一步走向 `READY`。
+
+## Step 09
+
+- 时间：2026-04-24 15:57:05
+- 状态：已完成
+- 结果：
+  - 新增 `src/drivers/thermal_head/drv_thermal_head.h`，定义热敏打印头硬件动作接口。
+  - 新增 `src/drivers/thermal_head/drv_thermal_head_mock.cpp`，实现不操作 GPIO 的热敏打印头 mock。
+  - 新增 `src/drivers/stepper/drv_stepper.h`，定义步进电机硬件动作接口。
+  - 新增 `src/drivers/stepper/drv_stepper_mock.cpp`，实现不操作 GPIO、不唤醒 DRV8833 的步进电机 mock。
+  - 新增 `src/drivers/sensors/drv_sensor_types.h`，定义传感器读取接口、充电状态和 mock 配置/统计结构。
+  - 新增 `src/drivers/sensors/drv_sensors_mock.cpp`，实现可配置固定返回值的传感器 mock。
+  - 当前 driver 接口只描述硬件动作，不包含业务决策。
+  - 当前 mock 只记录调用次数，不包含 Arduino、FreeRTOS、GPIO 或真实 ESP32 驱动逻辑。
+  - 使用 `python -m platformio run` 编译通过。
+- 下一步建议：
+  - 下一步适合建立 SensorService，把 `SensorDriver` 的 mock 读数转换为 `EVT_PAPER_PRESENT`、`EVT_TEMP_OK`、`EVT_BAT_OK` 等系统事件。
