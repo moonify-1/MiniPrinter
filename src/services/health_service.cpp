@@ -8,6 +8,7 @@ constexpr TickType_t kLoggerTimeoutTicks = pdMS_TO_TICKS(3000U);
 constexpr TickType_t kSystemTimeoutTicks = pdMS_TO_TICKS(1000U);
 constexpr TickType_t kSensorTimeoutTicks = pdMS_TO_TICKS(500U);
 constexpr TickType_t kMonitorTimeoutTicks = pdMS_TO_TICKS(500U);
+constexpr TickType_t kPrintTimeoutTicks = pdMS_TO_TICKS(1000U);
 
 mp::HealthSnapshot g_healthSnapshot = {};
 
@@ -18,12 +19,14 @@ mp::HealthSnapshot g_healthSnapshot = {};
 // - SENSOR：刷新纸张、温度、电池和电机故障事件。
 // - LOGGER：负责异步日志输出。
 // - MONITOR：负责心跳检查和安全收敛。
+// - PRINT_CTRL：打印流程执行任务，超时后应停止所有输出。
 bool IsCriticalTask(mp::TaskId id) {
   switch (id) {
     case mp::TaskId::SYSTEM:
     case mp::TaskId::SENSOR:
     case mp::TaskId::LOGGER:
     case mp::TaskId::MONITOR:
+    case mp::TaskId::PRINT_CTRL:
       return true;
     default:
       return false;
@@ -41,6 +44,8 @@ TickType_t GetTimeoutTicks(mp::TaskId id) {
       return kLoggerTimeoutTicks;
     case mp::TaskId::MONITOR:
       return kMonitorTimeoutTicks;
+    case mp::TaskId::PRINT_CTRL:
+      return kPrintTimeoutTicks;
     default:
       return 0U;
   }

@@ -263,3 +263,25 @@
   - 已按要求创建 git commit。
 - 下一步建议：
   - 下一步适合建立 PrintEngineTask 或 PrintCtrlTask 的安全调度骨架，先以 mock driver 串联走纸/出行节奏，再决定是否开启真实电机。
+
+## Step 17
+
+- 时间：2026-04-24 16:48:09
+- 状态：已完成
+- 结果：
+  - 新增 `src/app/app_print.h/.cpp`，记录打印作业状态、作业号、已打印行数和结束请求。
+  - 新增 `src/services/print_service.h/.cpp`，提供打印控制消息投递、`EVT_PRINT_ACTIVE` 管理、行分组黑点统计和错误上报。
+  - 新增 `src/tasks/task_print_engine.h/.cpp`，实现第一版 PrintEngineTask。
+  - `qPrintCtrl` 已从占位 `uint32_t` 队列改为 `PrintControlMsg` 队列。
+  - 协议层新增 `PRINT_START`、`PRINT_END`、`PRINT_CANCEL`、`FEED` 命令，`PRINT_LINE` 继续只入队行数据。
+  - PrintEngineTask 消费 `qPrintCtrl` 和 `qLineReady`，所有队列等待都有 timeout。
+  - 每行按 6 个 STB group 统计黑点，调用 `ThermalSafety_CheckLine()` 和 `ThermalSafety_CalcPulseUs()` 生成模拟计划。
+  - Step 17 固定调用 `GetThermalHeadMockDriver()` 和 `GetStepperMockDriver()`，不调用真实热敏头或真实 DRV8833 驱动。
+  - `PRINT_START` 设置 `EVT_PRINT_ACTIVE`，SystemTask 会进入 `RUNNING`；完成或取消后清除事件，状态回到 `READY` 或 `IDLE`。
+  - 异常时执行 `Bsp_SetAllOutputsSafe()`、清理行队列、发送 `qError` 并设置错误事件。
+  - PrintEngineTask 已纳入 heartbeat，并在 HealthService 中按关键任务检查。
+  - 使用 `python -m platformio run` 编译通过。
+  - 额外使用 `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1"` 编译通过，确认真实驱动可编译但 PrintEngineTask 仍固定 mock。
+  - 已按要求创建 git commit。
+- 下一步建议：
+  - 下一步适合补一个主机侧 Python 测试脚本，自动构造 `PRINT_START -> PRINT_LINE* -> PRINT_END` 帧并校验响应与日志。

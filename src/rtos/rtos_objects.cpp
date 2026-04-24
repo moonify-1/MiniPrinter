@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "app/app_print.h"
 #include "common/fixed_pool.h"
 #include "protocol/proto_frame.h"
 #include "services/log_service.h"
@@ -19,6 +20,7 @@ constexpr UBaseType_t kLineQueueLength =
     static_cast<UBaseType_t>(mp::LINE_BUFFER_POOL_SIZE);
 constexpr UBaseType_t kSensorQueueLength = 1U;
 constexpr UBaseType_t kCommandQueueLength = 4U;
+constexpr UBaseType_t kPrintCtrlQueueLength = 8U;
 
 // 判断 RTOS 对象是否已经完整创建。
 bool AreObjectsReady(const mp::RtosObjects& objects) {
@@ -56,6 +58,14 @@ QueueHandle_t CreateSensorQueue() {
 // ProtocolTask 放入完整 ProtoFrame，CommandTask 取出并分发。
 QueueHandle_t CreateCommandQueue() {
   return xQueueCreate(kCommandQueueLength, sizeof(mp::ProtoFrame));
+}
+
+// 创建打印控制队列。
+//
+// qPrintCtrl 传递 PrintControlMsg，而不是裸整数。
+// 这样后续 PrintEngineTask 能明确区分 START/END/CANCEL/FEED。
+QueueHandle_t CreatePrintCtrlQueue() {
+  return xQueueCreate(kPrintCtrlQueueLength, sizeof(mp::PrintControlMsg));
 }
 
 // 创建行缓冲指针队列。
@@ -134,7 +144,7 @@ bool Rtos_CreateObjects() {
   g_rtos.qLog = CreateLogQueue(kLogQueueLength);
   g_rtos.qError = CreatePlaceholderQueue(kDefaultQueueLength);
   g_rtos.qCommand = CreateCommandQueue();
-  g_rtos.qPrintCtrl = CreatePlaceholderQueue(kDefaultQueueLength);
+  g_rtos.qPrintCtrl = CreatePrintCtrlQueue();
   g_rtos.qLineReady = CreateLineBufferPointerQueue();
   g_rtos.qLineFree = CreateLineBufferPointerQueue();
   g_rtos.qSensor = CreateSensorQueue();

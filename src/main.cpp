@@ -14,11 +14,13 @@
 #include "services/health_service.h"
 #include "services/log_service.h"
 #include "services/param_service.h"
+#include "services/print_service.h"
 #include "services/print_spooler.h"
 #include "tasks/task_command.h"
 #include "tasks/task_log.h"
 #include "tasks/task_monitor.h"
 #include "tasks/task_param.h"
+#include "tasks/task_print_engine.h"
 #include "tasks/task_protocol.h"
 #include "tasks/task_sensor.h"
 #include "tasks/task_system.h"
@@ -85,6 +87,7 @@ void setup() {
   mp::Log_Init();
   mp::Param_Init();
   (void)mp::Param_Load();
+  mp::PrintService_Init();
   mp::Health_Init();
 
   // 创建日志任务失败时，不继续进入后续流程。
@@ -115,6 +118,13 @@ void setup() {
     return;
   }
 
+  // PrintEngineTask 当前只跑 mock 打印流程，必须先于 MonitorTask 创建并上报心跳。
+  if (!mp::TaskPrintEngine_Create()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: TaskPrintEngine_Create failed");
+    return;
+  }
+
   // CommandTask 先启动，保证 ProtocolTask 收到完整帧后有消费者。
   if (!mp::TaskCommand_Create()) {
     mp::Bsp_SetAllOutputsSafe();
@@ -141,5 +151,5 @@ void setup() {
 }
 
 void loop() {
-  // Step 13 仍然只保留最小主循环，不写业务逻辑。
+  // Step 17 仍然只保留最小主循环，不在 loop() 里写业务逻辑。
 }

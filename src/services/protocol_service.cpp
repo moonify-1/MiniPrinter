@@ -9,6 +9,7 @@
 #include "protocol/proto_crc.h"
 #include "rtos/rtos_objects.h"
 #include "services/param_service.h"
+#include "services/print_service.h"
 #include "services/print_spooler.h"
 #include "services/sensor_service.h"
 
@@ -16,9 +17,12 @@ namespace {
 
 constexpr std::uint16_t kDeviceIdDefault = 1U;
 constexpr std::size_t kStatusPayloadLen = 160U;
-constexpr std::size_t kInfoPayloadLen = 128U;
+constexpr std::size_t kInfoPayloadLen = 192U;
 constexpr std::size_t kParamPayloadLen = 160U;
 constexpr std::size_t kPrintPayloadLen = 80U;
+
+std::uint32_t g_protocolPrintJobId = 0U;
+std::uint32_t g_protocolNextLineNo = 0U;
 
 void WriteLe16(std::uint8_t* data, std::uint16_t value) {
   data[0] = static_cast<std::uint8_t>(value & 0x00FFU);
@@ -123,7 +127,7 @@ void HandleGetInfo(const mp::ProtoFrame& frame) {
   std::uint8_t payload[kInfoPayloadLen] = {};
   const std::uint16_t payloadLen = CopyTextPayload(
       payload, sizeof(payload),
-      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_PARAM,SAVE_PARAM,FACTORY_RESET,PRINT_LINE");
+      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_PARAM,SAVE_PARAM,FACTORY_RESET,PRINT_START,PRINT_LINE,PRINT_END,PRINT_CANCEL,FEED");
   (void)SendResponse(frame, 0U, payload, payloadLen);
 }
 
@@ -245,8 +249,8 @@ void HandlePrintLine(const mp::ProtoFrame& frame) {
     return;
   }
 
-  line->jobId = frame.seq;
-  line->lineNo = 0U;
+  line->jobId = (g_protocolPrintJobId != 0U) ? g_protocolPrintJobId : frame.seq;
+  line->lineNo = g_protocolNextLineNo++;
   std::memcpy(line->data, frame.payload, sizeof(line->data));
   line->blackDotCount =
       mp::PrintSpooler_CountBlackDots(line->data, sizeof(line->data));
@@ -273,6 +277,68 @@ void HandlePrintLine(const mp::ProtoFrame& frame) {
   }
 
   (void)SendResponse(frame, 0U, payload, payloadLen);
+}
+
+std::uint32_t ReadLe32OrDefault(const mp::ProtoFrame& frame,
+                                std::uint32_t defaultValue) {
+  if (frame.payloadLen < 4U) {
+    return defaultValue;
+  }
+
+  return static_cast<std::uint32_t>(frame.payload[0]) |
+         (static_cast<std::uint32_t>(frame.payload[1]) << 8U) |
+         (static_cast<std::uint32_t>(frame.payload[2]) << 16U) |
+         (static_cast<std::uint32_t>(frame.payload[3]) << 24U);
+}
+
+void SendQueuedText(const mp::ProtoFrame& frame, const char* text) {
+  std::uint8_t payload[kPrintPayloadLen] = {};
+  const std::uint16_t payloadLen =
+      CopyTextPayload(payload, sizeof(payload), text);
+  (void)SendResponse(frame, 0U, payload, payloadLen);
+}
+
+void HandlePrintStart(const mp::ProtoFrame& frame) {
+  const bool queued = mp::PrintService_RequestStart(frame.seq);
+  if (!queued) {
+    SendErrorCode(frame, mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  g_protocolPrintJobId = frame.seq;
+  g_protocolNextLineNo = 0U;
+  SendQueuedText(frame, "PRINT_START_QUEUED");
+}
+
+void HandlePrintEnd(const mp::ProtoFrame& frame) {
+  const bool queued = mp::PrintService_RequestEnd(frame.seq);
+  if (!queued) {
+    SendErrorCode(frame, mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  SendQueuedText(frame, "PRINT_END_QUEUED");
+}
+
+void HandlePrintCancel(const mp::ProtoFrame& frame) {
+  const bool queued = mp::PrintService_RequestCancel(frame.seq);
+  if (!queued) {
+    SendErrorCode(frame, mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  SendQueuedText(frame, "PRINT_CANCEL_QUEUED");
+}
+
+void HandleFeed(const mp::ProtoFrame& frame) {
+  const std::uint32_t steps = ReadLe32OrDefault(frame, 1U);
+  const bool queued = mp::PrintService_RequestFeed(steps);
+  if (!queued) {
+    SendErrorCode(frame, mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  SendQueuedText(frame, "FEED_QUEUED");
 }
 
 }  // namespace
@@ -326,8 +392,20 @@ void ProtocolService_HandleFrame(const ProtoFrame& frame) {
     case ProtoCmd::FACTORY_RESET:
       HandleFactoryReset(frame);
       break;
+    case ProtoCmd::PRINT_START:
+      HandlePrintStart(frame);
+      break;
     case ProtoCmd::PRINT_LINE:
       HandlePrintLine(frame);
+      break;
+    case ProtoCmd::PRINT_END:
+      HandlePrintEnd(frame);
+      break;
+    case ProtoCmd::PRINT_CANCEL:
+      HandlePrintCancel(frame);
+      break;
+    case ProtoCmd::FEED:
+      HandleFeed(frame);
       break;
     default:
       HandleUnsupported(frame);
