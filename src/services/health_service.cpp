@@ -5,6 +5,7 @@
 namespace {
 
 constexpr TickType_t kLoggerTimeoutTicks = pdMS_TO_TICKS(3000U);
+constexpr TickType_t kSystemTimeoutTicks = pdMS_TO_TICKS(1000U);
 constexpr TickType_t kMonitorTimeoutTicks = pdMS_TO_TICKS(500U);
 
 mp::HealthSnapshot g_healthSnapshot = {};
@@ -16,6 +17,7 @@ mp::HealthSnapshot g_healthSnapshot = {};
 // - MONITOR：负责心跳检查和安全收敛。
 bool IsCriticalTask(mp::TaskId id) {
   switch (id) {
+    case mp::TaskId::SYSTEM:
     case mp::TaskId::LOGGER:
     case mp::TaskId::MONITOR:
       return true;
@@ -27,6 +29,8 @@ bool IsCriticalTask(mp::TaskId id) {
 // 获取指定任务的允许心跳超时时间。
 TickType_t GetTimeoutTicks(mp::TaskId id) {
   switch (id) {
+    case mp::TaskId::SYSTEM:
+      return kSystemTimeoutTicks;
     case mp::TaskId::LOGGER:
       return kLoggerTimeoutTicks;
     case mp::TaskId::MONITOR:

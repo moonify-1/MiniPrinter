@@ -102,3 +102,18 @@
   - 使用 `python -m platformio run` 编译通过。
 - 下一步建议：
   - 下一步适合为 `qError` 和状态服务定义真实错误消息结构，让 MonitorTask 的故障结果不只写日志，还能进入统一错误处理通道。
+
+## Step 08
+
+- 时间：2026-04-24 13:31:00
+- 状态：已完成
+- 结果：
+  - 新增 `src/app/app_system.h/.cpp`，实现硬件无关的系统状态机骨架。
+  - 新增 `src/tasks/task_system.h/.cpp`，实现 100ms 周期的 SystemTask。
+  - SystemTask 会读取 EventGroup、处理 `qError`、维护系统状态并上报 heartbeat。
+  - 初始状态路径为 `BOOT -> INIT -> SELF_TEST -> IDLE`，自检当前为 mock 通过。
+  - 当 paper / temp / bat 尚未真实实现时，状态机会停在 `IDLE`，不会强行进入 `READY`。
+  - SAFE_MODE 下会调用 `Bsp_SetAllOutputsSafe()`，继续保持危险输出关闭。
+  - 使用 `python -m platformio run` 编译通过。
+- 下一步建议：
+  - 下一步适合补传感器与板级状态输入，把 `EVT_PAPER_PRESENT`、`EVT_TEMP_OK`、`EVT_BAT_OK` 变成真实数据来源，这样系统状态机才能从 `IDLE` 进一步走向 `READY`。
