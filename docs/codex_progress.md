@@ -42,3 +42,19 @@
   - 使用文本搜索确认 `src/config/` 下未包含 `Arduino.h` 和 `FreeRTOS.h`。
 - 下一步建议：
   - 进入 Step 04 时，可以基于 `ParamBlock` 先建立参数服务接口，但仍然不要接入真实 NVS 读写。
+
+## Step 04
+
+- 时间：2026-04-24 12:59:05
+- 状态：已完成
+- 结果：
+  - 新增 `src/bsp/bsp_pins.h`，集中管理板级引脚占位，当前全部保持 `PIN_UNASSIGNED`。
+  - 新增 `src/bsp/bsp_gpio.h/.cpp`，提供 GPIO 安全包装接口。
+  - 新增 `src/bsp/bsp_board.h/.cpp`，提供板级安全输出入口和初始化函数。
+  - `main.cpp` 已调整为最早调用 `Bsp_PreInitSafeOutputs()`，然后再调用 `Serial.begin()`。
+  - BSP 当前不会打开 VH，不会输出 STB 有效电平，不会唤醒 DRV8833。
+  - 未分配引脚统一跳过，不报错。
+  - 使用 `python -m platformio run` 编译通过。
+  - BSP 层按设计允许包含 `Arduino.h`，当前仅在 `bsp_gpio.cpp` 和 `bsp_board.cpp` 中使用。
+- 下一步建议：
+  - 下一步适合补 Step 05：把输入读取和板级状态采样做成只读接口，例如纸检测、故障脚、按键、电池状态，但仍然不要接真实打印或电机驱动。
