@@ -3,6 +3,7 @@
 #include "app/app_system.h"
 #include "config/project_features.h"
 #include "rtos/rtos_objects.h"
+#include "services/error_service.h"
 #include "services/thermal_safety_service.h"
 
 namespace {
@@ -41,6 +42,26 @@ std::uint8_t CountGroupBlackDots(const mp::LineBuffer* line,
         total + CountBits(line->data[startByte + offset]));
   }
   return total;
+}
+
+const char* DetailForPrintError(mp::AppErrorCode error) {
+  if (error == mp::ERR_SENSOR_PAPER_MISSING) {
+    return "paper missing: stop print until paper present";
+  }
+
+  if (error == mp::ERR_HEAD_OVER_TEMP) {
+    return "head over temperature: wait cooldown";
+  }
+
+  if (error == mp::ERR_POWER_LOW_BATTERY) {
+    return "low battery: block heating and fast motor";
+  }
+
+  if (error == mp::ERR_MOTOR_FAULT) {
+    return "DRV fault: release motor and stop print";
+  }
+
+  return "print service error";
 }
 
 }  // namespace
@@ -150,21 +171,8 @@ AppErrorCode PrintService_CheckRealPrintAllowed(const SensorSnapshot& sensor,
 }
 
 void PrintService_ReportError(AppErrorCode error) {
-  if (g_rtos.qError != nullptr) {
-    if (xQueueSend(g_rtos.qError, &error, kNoWait) != pdPASS) {
-      AppErrorCode dropped = APP_OK;
-      (void)xQueueReceive(g_rtos.qError, &dropped, kNoWait);
-      (void)xQueueSend(g_rtos.qError, &error, kNoWait);
-    }
-  }
-
-  if (g_rtos.systemEvents != nullptr) {
-    EventBits_t bits = EVT_ERROR_PENDING;
-    if (isFatalError(error)) {
-      bits |= EVT_SAFE_MODE;
-    }
-    xEventGroupSetBits(g_rtos.systemEvents, bits);
-  }
+  (void)kNoWait;
+  Error_Report(error, "print", DetailForPrintError(error));
 }
 
 }  // namespace mp

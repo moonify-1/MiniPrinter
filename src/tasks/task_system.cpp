@@ -9,6 +9,7 @@
 #include "common/app_error.h"
 #include "rtos/rtos_objects.h"
 #include "rtos/task_registry.h"
+#include "services/error_service.h"
 #include "services/health_service.h"
 #include "services/log_service.h"
 
@@ -21,6 +22,13 @@ constexpr TickType_t kSystemTaskPeriodTicks = pdMS_TO_TICKS(100U);
 constexpr TickType_t kErrorQueuePollTicks = 0U;
 
 TaskHandle_t g_systemTaskHandle = nullptr;
+
+struct ErrorDrainResult {
+  bool hasWarn;
+  bool hasError;
+  bool hasFatal;
+  mp::ErrorEvent selected;
+};
 
 // 把系统状态转成字符串，便于日志输出。
 const char* StateToString(mp::SystemState state) {
@@ -70,22 +78,59 @@ mp::SystemAppInput BuildInputFromEvents(EventBits_t bits, bool hasError,
   return input;
 }
 
-// 尝试从 qError 取出所有待处理错误，返回最后一条。
-bool DrainErrorQueue(mp::AppErrorCode* lastError) {
-  if (lastError == nullptr || mp::g_rtos.qError == nullptr) {
-    return false;
+bool IsMoreSevere(mp::ErrorSeverity lhs, mp::ErrorSeverity rhs) {
+  return static_cast<std::uint8_t>(lhs) > static_cast<std::uint8_t>(rhs);
+}
+
+// 尝试从 qError 取出所有待处理错误。
+//
+// qError 当前传递 ErrorEvent，所以 SystemTask 可以按严重级别分流：
+// - WARN：只记录，不强制改变状态。
+// - ERROR：进入 ERROR，下一轮尝试 RECOVERY。
+// - FATAL：立即安全输出，并进入 SAFE_MODE。
+ErrorDrainResult DrainErrorQueue() {
+  ErrorDrainResult result = {};
+  result.selected.code = mp::APP_OK;
+  result.selected.severity = mp::ErrorSeverity::NONE;
+
+  if (mp::g_rtos.qError == nullptr) {
+    return result;
   }
 
-  bool hasError = false;
-  mp::AppErrorCode errorCode = mp::APP_OK;
-
-  while (xQueueReceive(mp::g_rtos.qError, &errorCode, kErrorQueuePollTicks) ==
+  mp::ErrorEvent event = {};
+  while (xQueueReceive(mp::g_rtos.qError, &event, kErrorQueuePollTicks) ==
          pdPASS) {
-    hasError = true;
-    *lastError = errorCode;
+    if (IsMoreSevere(event.severity, result.selected.severity)) {
+      result.selected = event;
+    }
+
+    switch (event.severity) {
+      case mp::ErrorSeverity::WARN:
+        result.hasWarn = true;
+        mp::Log_Warn("system", "WARN %s code=0x%08lX %s", event.module,
+                     static_cast<unsigned long>(event.code), event.detail);
+        break;
+
+      case mp::ErrorSeverity::ERROR:
+        result.hasError = true;
+        mp::Log_Error("system", "ERROR %s code=0x%08lX %s", event.module,
+                      static_cast<unsigned long>(event.code), event.detail);
+        break;
+
+      case mp::ErrorSeverity::FATAL:
+        result.hasFatal = true;
+        result.selected = event;
+        mp::Bsp_SetAllOutputsSafe();
+        mp::Log_Fatal("system", "FATAL %s code=0x%08lX %s", event.module,
+                      static_cast<unsigned long>(event.code), event.detail);
+        break;
+
+      default:
+        break;
+    }
   }
 
-  return hasError;
+  return result;
 }
 
 // 处理状态迁移后的配套动作。
@@ -138,24 +183,22 @@ void TaskSystemMain(void* /*context*/) {
     mp::Health_ReportHeartbeat(mp::TaskId::SYSTEM);
 
     const mp::SystemState previousState = mp::SystemApp_GetState();
+    const ErrorDrainResult errorDrain = DrainErrorQueue();
+    const bool hasStateChangingError =
+        errorDrain.hasError || errorDrain.hasFatal;
+
+    if ((errorDrain.hasWarn || errorDrain.hasError) && !errorDrain.hasFatal) {
+      mp::Error_ClearRecoverable();
+    }
+
     EventBits_t bits = 0U;
     if (mp::g_rtos.systemEvents != nullptr) {
       bits = xEventGroupGetBits(mp::g_rtos.systemEvents);
     }
 
-    mp::AppErrorCode errorCode = mp::APP_OK;
-    const bool hasError = DrainErrorQueue(&errorCode);
-
-    if (hasError) {
-      if (mp::g_rtos.systemEvents != nullptr) {
-        xEventGroupSetBits(mp::g_rtos.systemEvents, mp::EVT_ERROR_PENDING);
-      }
-      mp::Log_Error("system", "qError received code=0x%08lX",
-                    static_cast<unsigned long>(errorCode));
-    }
-
     const mp::SystemAppInput input =
-        BuildInputFromEvents(bits, hasError, errorCode);
+        BuildInputFromEvents(bits, hasStateChangingError,
+                             errorDrain.selected.code);
     mp::SystemApp_ProcessEvent(input);
 
     const mp::SystemState currentState = mp::SystemApp_GetState();

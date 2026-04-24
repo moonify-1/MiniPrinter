@@ -306,3 +306,22 @@
   - 已按要求创建 git commit。
 - 下一步建议：
   - 下一步适合补主机侧协议测试脚本，并在真实硬件测试前先做无纸/缺纸/过温/低电压保护路径验证。
+
+## Step 19
+
+- 时间：2026-04-24 17:06:03
+- 状态：已完成
+- 结果：
+  - 新增 `src/services/error_service.h/.cpp`，定义 `ErrorEvent` 和统一错误上报服务。
+  - `ErrorEvent` 包含 `code`、`severity`、`module`、`timestamp` 和 `detail`。
+  - `ErrorService` 提供 `Error_Report()`、`Error_GetLast()`、`Error_ClearRecoverable()`、`Error_IsSafeModeRequired()`。
+  - `qError` 已从裸 `AppErrorCode` 队列改为 `ErrorEvent` 队列。
+  - PrintService 和 MonitorTask 已改为通过 `Error_Report()` 上报错误，不直接写 `qError`。
+  - SystemTask 按严重级别处理错误：`WARN` 只记录并清除可恢复待处理位，`ERROR` 进入 `ERROR` 后允许下一轮 `RECOVERY`，`FATAL` 立即执行 `Bsp_SetAllOutputsSafe()` 并进入 `SAFE_MODE`。
+  - SAFE_MODE 下协议白名单只允许 `GET_STATUS`、`GET_ERROR`、`CLEAR_ERROR`、`SELF_TEST`、`REBOOT`、`FACTORY_RESET`。
+  - `PRINT_START` 等打印命令在 SAFE_MODE 下会返回 `NACK_SAFE_MODE`。
+  - 缺纸、过温、低电压和 DRV fault 已在 PrintService 上报详情中明确区分。
+  - 使用 `python -m platformio run` 编译通过。
+  - 已按要求创建 git commit。
+- 下一步建议：
+  - 下一步适合执行 Step 20，将真实 Watchdog 接入 MonitorTask，并确保只有 MonitorTask 能喂狗。

@@ -5,6 +5,7 @@
 #include "app/app_print.h"
 #include "common/fixed_pool.h"
 #include "protocol/proto_frame.h"
+#include "services/error_service.h"
 #include "services/log_service.h"
 #include "services/sensor_service.h"
 
@@ -43,6 +44,14 @@ QueueHandle_t CreatePlaceholderQueue(UBaseType_t length) {
 // 因为异步日志系统已经定义了固定长度的 LogMsg。
 QueueHandle_t CreateLogQueue(UBaseType_t length) {
   return xQueueCreate(length, sizeof(mp::LogMsg));
+}
+
+// 创建错误事件队列。
+//
+// qError 传递 ErrorEvent，而不是裸 AppErrorCode。
+// 这样 SystemTask 能按严重级别做 WARN / ERROR / FATAL 分流。
+QueueHandle_t CreateErrorQueue(UBaseType_t length) {
+  return xQueueCreate(length, sizeof(mp::ErrorEvent));
 }
 
 // 创建传感器快照队列。
@@ -142,7 +151,7 @@ bool Rtos_CreateObjects() {
 
   g_rtos.systemEvents = xEventGroupCreate();
   g_rtos.qLog = CreateLogQueue(kLogQueueLength);
-  g_rtos.qError = CreatePlaceholderQueue(kDefaultQueueLength);
+  g_rtos.qError = CreateErrorQueue(kDefaultQueueLength);
   g_rtos.qCommand = CreateCommandQueue();
   g_rtos.qPrintCtrl = CreatePrintCtrlQueue();
   g_rtos.qLineReady = CreateLineBufferPointerQueue();

@@ -76,7 +76,7 @@ AppErrorCode PrintService_CheckRealPrintAllowed(const SensorSnapshot& sensor,
 
 // 上报打印错误。
 //
-// 该函数会尽量向 qError 投递错误码，并设置错误事件位。
+// 该函数内部调用 Error_Report()，调用者不要直接操作 qError。
 void PrintService_ReportError(AppErrorCode error);
 
 }  // namespace mp

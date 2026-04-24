@@ -8,6 +8,7 @@
 #include "config/project_features.h"
 #include "rtos/rtos_objects.h"
 #include "rtos/task_registry.h"
+#include "services/error_service.h"
 #include "services/health_service.h"
 #include "services/log_service.h"
 
@@ -64,14 +65,11 @@ void TaskMonitorMain(void* /*context*/) {
     // 一旦检测到关键任务异常，先立即把输出拉回安全态。
     mp::Bsp_SetAllOutputsSafe();
 
-    if (mp::g_rtos.systemEvents != nullptr) {
-      xEventGroupSetBits(mp::g_rtos.systemEvents,
-                         mp::EVT_SAFE_MODE | mp::EVT_ERROR_PENDING);
-    }
-
     const mp::HealthSnapshot snapshot = mp::Health_GetSnapshot();
     if (!g_faultLatched) {
       g_faultLatched = true;
+      mp::Error_Report(mp::ERR_WDT_TASK_TIMEOUT, "monitor",
+                       "critical task heartbeat timeout");
       mp::Log_Fatal("monitor", "Task heartbeat timeout id=%u age=%lu",
                     static_cast<unsigned>(snapshot.failedTaskId),
                     static_cast<unsigned long>(snapshot.failedTaskAgeTicks));

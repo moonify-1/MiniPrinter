@@ -8,6 +8,7 @@
 #include "protocol/proto_cmd.h"
 #include "protocol/proto_crc.h"
 #include "rtos/rtos_objects.h"
+#include "services/error_service.h"
 #include "services/param_service.h"
 #include "services/print_service.h"
 #include "services/print_spooler.h"
@@ -56,6 +57,37 @@ const char* SystemStateToText(mp::SystemState state) {
       return "SHUTDOWN";
     default:
       return "UNKNOWN";
+  }
+}
+
+const char* ErrorSeverityToText(mp::ErrorSeverity severity) {
+  switch (severity) {
+    case mp::ErrorSeverity::NONE:
+      return "NONE";
+    case mp::ErrorSeverity::INFO:
+      return "INFO";
+    case mp::ErrorSeverity::WARN:
+      return "WARN";
+    case mp::ErrorSeverity::ERROR:
+      return "ERROR";
+    case mp::ErrorSeverity::FATAL:
+      return "FATAL";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+bool IsSafeModeAllowed(mp::ProtoCmd cmd) {
+  switch (cmd) {
+    case mp::ProtoCmd::GET_STATUS:
+    case mp::ProtoCmd::GET_ERROR:
+    case mp::ProtoCmd::CLEAR_ERROR:
+    case mp::ProtoCmd::SELF_TEST:
+    case mp::ProtoCmd::REBOOT:
+    case mp::ProtoCmd::FACTORY_RESET:
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -127,7 +159,7 @@ void HandleGetInfo(const mp::ProtoFrame& frame) {
   std::uint8_t payload[kInfoPayloadLen] = {};
   const std::uint16_t payloadLen = CopyTextPayload(
       payload, sizeof(payload),
-      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_PARAM,SAVE_PARAM,FACTORY_RESET,PRINT_START,PRINT_LINE,PRINT_END,PRINT_CANCEL,FEED");
+      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_ERROR,CLEAR_ERROR,SELF_TEST,REBOOT,GET_PARAM,SAVE_PARAM,FACTORY_RESET,PRINT_START,PRINT_LINE,PRINT_END,PRINT_CANCEL,FEED");
   (void)SendResponse(frame, 0U, payload, payloadLen);
 }
 
@@ -179,6 +211,62 @@ void SendErrorCode(const mp::ProtoFrame& frame, mp::AppErrorCode error) {
   }
 
   (void)SendResponse(frame, mp::PROTO_FLAG_ERROR, payload, payloadLen);
+}
+
+void SendErrorText(const mp::ProtoFrame& frame, const char* text) {
+  std::uint8_t payload[kPrintPayloadLen] = {};
+  const std::uint16_t payloadLen =
+      CopyTextPayload(payload, sizeof(payload), text);
+  (void)SendResponse(frame, mp::PROTO_FLAG_ERROR, payload, payloadLen);
+}
+
+void HandleSafeModeNack(const mp::ProtoFrame& frame) {
+  SendErrorText(frame, "NACK_SAFE_MODE");
+}
+
+void SendQueuedText(const mp::ProtoFrame& frame, const char* text);
+
+void HandleGetError(const mp::ProtoFrame& frame) {
+  const mp::ErrorEvent error = mp::Error_GetLast();
+  std::uint8_t payload[kStatusPayloadLen] = {};
+  const int written = std::snprintf(
+      reinterpret_cast<char*>(payload), sizeof(payload),
+      "code=0x%08lX,severity=%s,module=%s,tick=%lu,detail=%s,safe=%u",
+      static_cast<unsigned long>(error.code),
+      ErrorSeverityToText(error.severity), error.module,
+      static_cast<unsigned long>(error.timestamp), error.detail,
+      mp::Error_IsSafeModeRequired() ? 1U : 0U);
+
+  std::uint16_t payloadLen = 0U;
+  if (written > 0) {
+    const std::size_t len = static_cast<std::size_t>(written);
+    payloadLen =
+        static_cast<std::uint16_t>((len < sizeof(payload)) ? len
+                                                           : (sizeof(payload) - 1U));
+  }
+
+  (void)SendResponse(frame, 0U, payload, payloadLen);
+}
+
+void HandleClearError(const mp::ProtoFrame& frame) {
+  mp::Error_ClearRecoverable();
+  SendQueuedText(frame, mp::Error_IsSafeModeRequired()
+                            ? "CLEAR_ERROR_REJECTED_SAFE_MODE"
+                            : "CLEAR_ERROR_OK");
+}
+
+void HandleSelfTest(const mp::ProtoFrame& frame) {
+  if (mp::g_rtos.systemEvents != nullptr) {
+    xEventGroupSetBits(mp::g_rtos.systemEvents, mp::EVT_SELFTEST_OK);
+  }
+  SendQueuedText(frame, "SELF_TEST_OK_MOCK");
+}
+
+void HandleReboot(const mp::ProtoFrame& frame) {
+  SendQueuedText(frame, "REBOOTING");
+  Serial.flush();
+  delay(20);
+  ESP.restart();
 }
 
 void HandleGetParam(const mp::ProtoFrame& frame) {
@@ -370,7 +458,14 @@ bool ProtocolService_PostFrame(const ProtoFrame& frame) {
 }
 
 void ProtocolService_HandleFrame(const ProtoFrame& frame) {
-  switch (ToProtoCmd(frame.cmd)) {
+  const ProtoCmd cmd = ToProtoCmd(frame.cmd);
+  if (SystemApp_GetState() == SystemState::SAFE_MODE &&
+      !IsSafeModeAllowed(cmd)) {
+    HandleSafeModeNack(frame);
+    return;
+  }
+
+  switch (cmd) {
     case ProtoCmd::PING:
       HandlePing(frame);
       break;
@@ -379,6 +474,18 @@ void ProtocolService_HandleFrame(const ProtoFrame& frame) {
       break;
     case ProtoCmd::GET_STATUS:
       HandleGetStatus(frame);
+      break;
+    case ProtoCmd::GET_ERROR:
+      HandleGetError(frame);
+      break;
+    case ProtoCmd::CLEAR_ERROR:
+      HandleClearError(frame);
+      break;
+    case ProtoCmd::SELF_TEST:
+      HandleSelfTest(frame);
+      break;
+    case ProtoCmd::REBOOT:
+      HandleReboot(frame);
       break;
     case ProtoCmd::GET_PARAM:
       HandleGetParam(frame);
