@@ -224,3 +224,23 @@
   - 已按要求创建 git commit。
 - 下一步建议：
   - 下一步适合建立 PrintCtrlTask，把 `qLineReady`、SensorSnapshot、ParamBlock 和 ThermalSafetyService 串起来，但继续先不调用真实打印头驱动。
+
+## Step 15
+
+- 时间：2026-04-24 16:30:20
+- 状态：已完成
+- 结果：
+  - 新增 `src/bsp/bsp_spi.h/.cpp`，提供热敏打印头 SPI 初始化和 48 字节行数据发送入口。
+  - 新增 `src/bsp/bsp_timer.h/.cpp`，提供微秒级延时封装，便于后续统一替换为更精确的硬件定时。
+  - 新增 `src/drivers/thermal_head/drv_thermal_head_esp32.cpp`，实现真实 ThermalHeadDriver 的安全骨架。
+  - `MP_ENABLE_HW_THERMAL_HEAD=0` 时，`GetThermalHeadDriver()` 仍返回 mock driver，debug waveform test 返回 `ERR_HW_DISABLED`。
+  - `MP_ENABLE_HW_THERMAL_HEAD=1` 时才编译真实 GPIO/SPI 操作路径。
+  - 真实路径中 `init()` 首先关闭全部 STB 并关闭 VH，`setVh(true)` 前会确认所有 STB inactive。
+  - `pulseStbGroup()` 限制 group 为 0..5，限制脉冲不超过安全硬上限，`pulseUs=0` 不输出 STB，结束后强制关闭对应 STB。
+  - SPI 初始频率为 2MHz，LAT pulse 使用 GPIO 翻转和短延时，后续必须用示波器确认。
+  - 本步骤没有接入 PrintEngine，没有自动执行 waveform test。
+  - 使用 `python -m platformio run` 编译通过。
+  - 额外使用 `PLATFORMIO_BUILD_FLAGS=-DMP_ENABLE_HW_THERMAL_HEAD=1` 编译通过，确认真实硬件分支可编译。
+  - 已按要求创建 git commit。
+- 下一步建议：
+  - 下一步适合建立 PrintCtrlTask 的安全调度骨架，先串联 LineBuffer、SensorSnapshot、ParamBlock 和 ThermalSafetyService，默认仍不启用真实打印头硬件。

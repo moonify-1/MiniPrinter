@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "common/app_error.h"
+
 namespace mp {
 
 // 热敏打印头硬件动作接口。
@@ -70,6 +72,18 @@ struct ThermalHeadMockStats {
 // 当前 Step 09 返回 mock 实例。
 // 后续替换真实驱动时，上层仍然只通过 ThermalHeadDriver 接口调用。
 ThermalHeadDriver& GetThermalHeadDriver();
+
+// 获取 mock 驱动实例。
+//
+// 这个入口主要给硬件功能关闭时复用 mock，
+// 普通上层代码仍应优先调用 GetThermalHeadDriver()。
+ThermalHeadDriver& GetThermalHeadMockDriver();
+
+// 手动波形测试入口。
+//
+// 只允许未来的 debug 命令显式触发，启动流程绝不能自动调用。
+// 默认硬件关闭时返回 ERR_HW_DISABLED。
+AppErrorCode ThermalHead_DebugWaveformTest();
 
 // 读取 / 清零 mock 统计。
 //

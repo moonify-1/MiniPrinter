@@ -1,5 +1,7 @@
 #include "drivers/thermal_head/drv_thermal_head.h"
 
+#include "config/project_features.h"
+
 namespace {
 
 // Mock 版本的热敏打印头驱动。
@@ -44,7 +46,11 @@ MockThermalHeadDriver g_mockThermalHeadDriver;
 
 namespace mp {
 
-ThermalHeadDriver& GetThermalHeadDriver() { return g_mockThermalHeadDriver; }
+ThermalHeadDriver& GetThermalHeadMockDriver() { return g_mockThermalHeadDriver; }
+
+#if !MP_ENABLE_HW_THERMAL_HEAD
+ThermalHeadDriver& GetThermalHeadDriver() { return GetThermalHeadMockDriver(); }
+#endif
 
 const ThermalHeadMockStats& ThermalHeadMock_GetStats() {
   return g_mockThermalHeadDriver.stats();

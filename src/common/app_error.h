@@ -102,5 +102,6 @@ extern const AppErrorCode ERR_COMM_FRAME_TOO_LONG;
 extern const AppErrorCode ERR_QUEUE_FULL;
 extern const AppErrorCode ERR_PARAM_CRC;
 extern const AppErrorCode ERR_WDT_TASK_TIMEOUT;
+extern const AppErrorCode ERR_HW_DISABLED;
 
 }  // namespace mp

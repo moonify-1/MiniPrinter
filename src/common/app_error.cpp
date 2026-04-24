@@ -100,4 +100,8 @@ const AppErrorCode ERR_WDT_TASK_TIMEOUT =
     makeError(ErrorSeverity::FATAL, ErrorRecoverAction::RESTART_TASK,
               ErrorModule::WDT, 0x0001U);
 
+const AppErrorCode ERR_HW_DISABLED =
+    makeError(ErrorSeverity::WARN, ErrorRecoverAction::CHECK_CONDITION,
+              ErrorModule::SYSTEM, 0x0002U);
+
 }  // namespace mp
