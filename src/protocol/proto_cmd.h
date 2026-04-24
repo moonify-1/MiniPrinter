@@ -25,6 +25,12 @@ enum class ProtoCmd : std::uint16_t {
   PRINT_END = 0x0202U,
   PRINT_CANCEL = 0x0203U,
   FEED = 0x0204U,
+  SAFE_OFF = 0x0300U,
+  SENSOR_TEST = 0x0301U,
+  MOTOR_TEST = 0x0302U,
+  HEAD_SHIFT_TEST = 0x0303U,
+  HEAD_STB_TEST = 0x0304U,
+  ENTER_SAFE_MODE = 0x0305U,
 };
 
 // 把原始 uint16_t 转成命令枚举。

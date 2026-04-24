@@ -21,7 +21,8 @@ TaskHandle_t g_commandTaskHandle = nullptr;
 
 // 命令任务主循环。
 //
-// 它只做命令分发，不直接操作 GPIO、电机或打印头。
+// 这个任务只负责从 qCommand 取出完整协议帧，然后交给 ProtocolService 分发。
+// 真实调试动作被封装在 AppFactoryTest 中，CommandTask 不直接操作 GPIO、电机或打印头。
 // 所有等待都带 timeout，避免任务永久阻塞导致心跳丢失。
 void TaskCommandMain(void* /*context*/) {
   mp::RegisterTask(mp::TaskId::COMMAND, kCommandTaskName,

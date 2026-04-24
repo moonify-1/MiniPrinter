@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "app/app_factory_test.h"
 #include "app/app_system.h"
 #include "protocol/proto_cmd.h"
 #include "protocol/proto_crc.h"
@@ -18,9 +19,10 @@ namespace {
 
 constexpr std::uint16_t kDeviceIdDefault = 1U;
 constexpr std::size_t kStatusPayloadLen = 160U;
-constexpr std::size_t kInfoPayloadLen = 192U;
+constexpr std::size_t kInfoPayloadLen = 256U;
 constexpr std::size_t kParamPayloadLen = 160U;
 constexpr std::size_t kPrintPayloadLen = 80U;
+constexpr std::size_t kFactoryPayloadLen = 160U;
 
 std::uint32_t g_protocolPrintJobId = 0U;
 std::uint32_t g_protocolNextLineNo = 0U;
@@ -80,11 +82,14 @@ const char* ErrorSeverityToText(mp::ErrorSeverity severity) {
 bool IsSafeModeAllowed(mp::ProtoCmd cmd) {
   switch (cmd) {
     case mp::ProtoCmd::GET_STATUS:
+    case mp::ProtoCmd::SENSOR_TEST:
     case mp::ProtoCmd::GET_ERROR:
     case mp::ProtoCmd::CLEAR_ERROR:
     case mp::ProtoCmd::SELF_TEST:
     case mp::ProtoCmd::REBOOT:
     case mp::ProtoCmd::FACTORY_RESET:
+    case mp::ProtoCmd::SAFE_OFF:
+    case mp::ProtoCmd::ENTER_SAFE_MODE:
       return true;
     default:
       return false;
@@ -159,7 +164,7 @@ void HandleGetInfo(const mp::ProtoFrame& frame) {
   std::uint8_t payload[kInfoPayloadLen] = {};
   const std::uint16_t payloadLen = CopyTextPayload(
       payload, sizeof(payload),
-      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_ERROR,CLEAR_ERROR,SELF_TEST,REBOOT,GET_PARAM,SAVE_PARAM,FACTORY_RESET,PRINT_START,PRINT_LINE,PRINT_END,PRINT_CANCEL,FEED");
+      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_ERROR,CLEAR_ERROR,SELF_TEST,REBOOT,GET_PARAM,SAVE_PARAM,FACTORY_RESET,PRINT_START,PRINT_LINE,PRINT_END,PRINT_CANCEL,FEED,SAFE_OFF,SENSOR_TEST,MOTOR_TEST,HEAD_SHIFT_TEST,HEAD_STB_TEST,ENTER_SAFE_MODE");
   (void)SendResponse(frame, 0U, payload, payloadLen);
 }
 
@@ -264,9 +269,7 @@ void HandleSelfTest(const mp::ProtoFrame& frame) {
 
 void HandleReboot(const mp::ProtoFrame& frame) {
   SendQueuedText(frame, "REBOOTING");
-  Serial.flush();
-  delay(20);
-  ESP.restart();
+  mp::FactoryTest_Reboot();
 }
 
 void HandleGetParam(const mp::ProtoFrame& frame) {
@@ -379,6 +382,19 @@ std::uint32_t ReadLe32OrDefault(const mp::ProtoFrame& frame,
          (static_cast<std::uint32_t>(frame.payload[3]) << 24U);
 }
 
+std::uint32_t ReadLe32AtOrDefault(const mp::ProtoFrame& frame,
+                                  std::uint16_t offset,
+                                  std::uint32_t defaultValue) {
+  if (frame.payloadLen < static_cast<std::uint16_t>(offset + 4U)) {
+    return defaultValue;
+  }
+
+  return static_cast<std::uint32_t>(frame.payload[offset]) |
+         (static_cast<std::uint32_t>(frame.payload[offset + 1U]) << 8U) |
+         (static_cast<std::uint32_t>(frame.payload[offset + 2U]) << 16U) |
+         (static_cast<std::uint32_t>(frame.payload[offset + 3U]) << 24U);
+}
+
 void SendQueuedText(const mp::ProtoFrame& frame, const char* text) {
   std::uint8_t payload[kPrintPayloadLen] = {};
   const std::uint16_t payloadLen =
@@ -429,6 +445,96 @@ void HandleFeed(const mp::ProtoFrame& frame) {
   SendQueuedText(frame, "FEED_QUEUED");
 }
 
+void HandleSafeOff(const mp::ProtoFrame& frame) {
+  const mp::AppErrorCode result = mp::FactoryTest_SafeOff();
+  if (result != mp::APP_OK) {
+    SendErrorCode(frame, result);
+    return;
+  }
+
+  SendQueuedText(frame, "SAFE_OFF_OK");
+}
+
+void HandleSensorTest(const mp::ProtoFrame& frame) {
+  const mp::SensorSnapshot sensor = mp::FactoryTest_ReadSensors();
+  const std::int32_t tempX10 =
+      static_cast<std::int32_t>(sensor.headTempC * 10.0F);
+
+  std::uint8_t payload[kFactoryPayloadLen] = {};
+  const int written = std::snprintf(
+      reinterpret_cast<char*>(payload), sizeof(payload),
+      "SENSOR_TEST,paper=%u,temp_x10=%ld,bat_mv=%lu,charging=%u,motor_fault=%u,valid=%u,tick_ms=%lu",
+      sensor.paperPresent ? 1U : 0U, static_cast<long>(tempX10),
+      static_cast<unsigned long>(sensor.batteryMv),
+      sensor.charging ? 1U : 0U, sensor.motorFault ? 1U : 0U,
+      static_cast<unsigned>(sensor.validity),
+      static_cast<unsigned long>(sensor.tickMs));
+
+  std::uint16_t payloadLen = 0U;
+  if (written > 0) {
+    const std::size_t len = static_cast<std::size_t>(written);
+    payloadLen =
+        static_cast<std::uint16_t>((len < sizeof(payload)) ? len
+                                                           : (sizeof(payload) - 1U));
+  }
+
+  (void)SendResponse(frame, 0U, payload, payloadLen);
+}
+
+void HandleMotorTest(const mp::ProtoFrame& frame) {
+  const std::uint32_t steps = ReadLe32OrDefault(frame, 1U);
+  const mp::AppErrorCode result = mp::FactoryTest_MotorTest(steps);
+  if (result != mp::APP_OK) {
+    SendErrorCode(frame, result);
+    return;
+  }
+
+  SendQueuedText(frame, "MOTOR_TEST_OK");
+}
+
+void HandleHeadShiftTest(const mp::ProtoFrame& frame) {
+  const mp::AppErrorCode result =
+      mp::FactoryTest_HeadShiftTest(frame.payload, frame.payloadLen);
+  if (result != mp::APP_OK) {
+    SendErrorCode(frame, result);
+    return;
+  }
+
+  SendQueuedText(frame, "HEAD_SHIFT_TEST_OK");
+}
+
+void HandleHeadStbTest(const mp::ProtoFrame& frame) {
+  const std::uint8_t group = (frame.payloadLen > 0U) ? frame.payload[0] : 0U;
+  const std::uint32_t pulseUs = ReadLe32AtOrDefault(frame, 1U, 5U);
+  const mp::AppErrorCode result =
+      mp::FactoryTest_HeadStbTest(group, pulseUs);
+  if (result != mp::APP_OK) {
+    SendErrorCode(frame, result);
+    return;
+  }
+
+  SendQueuedText(frame, "HEAD_STB_TEST_OK");
+}
+
+void HandleEnterSafeMode(const mp::ProtoFrame& frame) {
+  const mp::AppErrorCode reason = mp::FactoryTest_EnterSafeMode();
+  std::uint8_t payload[kPrintPayloadLen] = {};
+  const int written = std::snprintf(
+      reinterpret_cast<char*>(payload), sizeof(payload),
+      "ENTER_SAFE_MODE,reason=0x%08lX",
+      static_cast<unsigned long>(reason));
+
+  std::uint16_t payloadLen = 0U;
+  if (written > 0) {
+    const std::size_t len = static_cast<std::size_t>(written);
+    payloadLen =
+        static_cast<std::uint16_t>((len < sizeof(payload)) ? len
+                                                           : (sizeof(payload) - 1U));
+  }
+
+  (void)SendResponse(frame, 0U, payload, payloadLen);
+}
+
 }  // namespace
 
 namespace mp {
@@ -459,6 +565,13 @@ bool ProtocolService_PostFrame(const ProtoFrame& frame) {
 
 void ProtocolService_HandleFrame(const ProtoFrame& frame) {
   const ProtoCmd cmd = ToProtoCmd(frame.cmd);
+
+  // SAFE_OFF 是最高优先级命令：无论系统是否已经 SAFE_MODE，都必须立即执行。
+  if (cmd == ProtoCmd::SAFE_OFF) {
+    HandleSafeOff(frame);
+    return;
+  }
+
   if (SystemApp_GetState() == SystemState::SAFE_MODE &&
       !IsSafeModeAllowed(cmd)) {
     HandleSafeModeNack(frame);
@@ -513,6 +626,21 @@ void ProtocolService_HandleFrame(const ProtoFrame& frame) {
       break;
     case ProtoCmd::FEED:
       HandleFeed(frame);
+      break;
+    case ProtoCmd::SENSOR_TEST:
+      HandleSensorTest(frame);
+      break;
+    case ProtoCmd::MOTOR_TEST:
+      HandleMotorTest(frame);
+      break;
+    case ProtoCmd::HEAD_SHIFT_TEST:
+      HandleHeadShiftTest(frame);
+      break;
+    case ProtoCmd::HEAD_STB_TEST:
+      HandleHeadStbTest(frame);
+      break;
+    case ProtoCmd::ENTER_SAFE_MODE:
+      HandleEnterSafeMode(frame);
       break;
     default:
       HandleUnsupported(frame);

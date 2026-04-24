@@ -339,3 +339,22 @@
   - `Bsp_WatchdogResetReasonText()` 已实现复位原因读取，后续可用于启动日志和故障分析。
 - 下一步建议：
   - 下一步适合执行 Step 21，增加 Factory Test / Debug Commands，并确认危险测试默认受硬件宏和安全条件保护。
+
+## Step 21
+
+- 时间：2026-04-24 17:24:04
+- 状态：已完成
+- 结果：
+  - 新增 `src/app/app_factory_test.h/.cpp`，把工厂测试和调试动作集中到 app 层。
+  - 新增协议命令：`SAFE_OFF`、`SENSOR_TEST`、`MOTOR_TEST`、`HEAD_SHIFT_TEST`、`HEAD_STB_TEST`、`ENTER_SAFE_MODE`。
+  - `SAFE_OFF` 在协议层最高优先级处理，任何状态下都会先执行 `Bsp_SetAllOutputsSafe()`。
+  - `SENSOR_TEST` 返回当前 SensorSnapshot，便于无硬件阶段验证 mock 传感器状态。
+  - `MOTOR_TEST` 在 `MP_ENABLE_HW_STEPPER=0` 时返回 `ERR_HW_DISABLED`，启用后也限制最大步数并低速执行。
+  - `HEAD_SHIFT_TEST` 只允许 48 字节 shift 和 latch，不打开 VH，不输出 STB。
+  - `HEAD_STB_TEST` 在 `MP_ENABLE_HW_THERMAL_HEAD=0` 时返回 `ERR_HW_DISABLED`；启用后仍要求 paper/temp/bat 条件通过，并且 pulseUs 受安全硬上限裁剪，测试期间 VH 保持关闭。
+  - `ENTER_SAFE_MODE` 会关闭危险输出并通过 ErrorService/SystemApp 锁存 SAFE_MODE。
+  - `REBOOT` 进入 FactoryTest 入口，重启前先记录日志并关闭危险输出。
+  - 使用 `python -m platformio run` 编译通过。
+  - 使用 `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1"` 额外编译通过。
+- 下一步建议：
+  - 下一步适合执行 Step 22，补充主机侧测试脚本和验收文档，用脚本实际发送 `STATUS`、`SAFE_OFF`、`SENSOR_TEST` 帧。
