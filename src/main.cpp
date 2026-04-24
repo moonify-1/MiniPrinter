@@ -15,6 +15,7 @@
 #include "services/log_service.h"
 #include "tasks/task_log.h"
 #include "tasks/task_monitor.h"
+#include "tasks/task_sensor.h"
 #include "tasks/task_system.h"
 
 namespace {
@@ -87,6 +88,13 @@ void setup() {
     return;
   }
 
+  // SensorTask 先于 MonitorTask 创建，避免关键任务尚未注册就被判定超时。
+  if (!mp::TaskSensor_Create()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: TaskSensor_Create failed");
+    return;
+  }
+
   // 监控任务优先级高于日志任务，负责关键任务心跳检查。
   if (!mp::TaskMonitor_Create()) {
     mp::Bsp_SetAllOutputsSafe();
@@ -99,5 +107,5 @@ void setup() {
 }
 
 void loop() {
-  // Step 08 仍然只保留最小主循环，不写业务逻辑。
+  // Step 10 仍然只保留最小主循环，不写业务逻辑。
 }

@@ -3,16 +3,18 @@
 #include <cstdint>
 
 #include "services/log_service.h"
+#include "services/sensor_service.h"
 
 namespace {
 
-// 当前除日志外，其余队列的真实消息结构还未定义，
-// 所以先统一使用一个轻量的 32 位占位槽位。
+// 当前仍有部分队列的真实消息结构还未定义，
+// 这些队列先统一使用一个轻量的 32 位占位槽位。
 using QueuePlaceholder = std::uint32_t;
 
 constexpr UBaseType_t kLogQueueLength = 16U;
 constexpr UBaseType_t kDefaultQueueLength = 8U;
 constexpr UBaseType_t kLineQueueLength = 4U;
+constexpr UBaseType_t kSensorQueueLength = 1U;
 
 // 判断 RTOS 对象是否已经完整创建。
 bool AreObjectsReady(const mp::RtosObjects& objects) {
@@ -35,6 +37,14 @@ QueueHandle_t CreatePlaceholderQueue(UBaseType_t length) {
 // 因为异步日志系统已经定义了固定长度的 LogMsg。
 QueueHandle_t CreateLogQueue(UBaseType_t length) {
   return xQueueCreate(length, sizeof(mp::LogMsg));
+}
+
+// 创建传感器快照队列。
+//
+// qSensor 只保留最新状态，所以队列长度固定为 1。
+// SensorService 会用 xQueueOverwrite 覆盖旧快照，避免消费者读到积压旧状态。
+QueueHandle_t CreateSensorQueue() {
+  return xQueueCreate(kSensorQueueLength, sizeof(mp::SensorSnapshot));
 }
 
 // 删除单个队列并清空句柄。
@@ -108,7 +118,7 @@ bool Rtos_CreateObjects() {
   g_rtos.qPrintCtrl = CreatePlaceholderQueue(kDefaultQueueLength);
   g_rtos.qLineReady = CreatePlaceholderQueue(kLineQueueLength);
   g_rtos.qLineFree = CreatePlaceholderQueue(kLineQueueLength);
-  g_rtos.qSensor = CreatePlaceholderQueue(kDefaultQueueLength);
+  g_rtos.qSensor = CreateSensorQueue();
   g_rtos.qParam = CreatePlaceholderQueue(kDefaultQueueLength);
 
   g_rtos.stateMutex = xSemaphoreCreateMutex();

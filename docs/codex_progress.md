@@ -134,3 +134,20 @@
   - 使用 `python -m platformio run` 编译通过。
 - 下一步建议：
   - 下一步适合建立 SensorService，把 `SensorDriver` 的 mock 读数转换为 `EVT_PAPER_PRESENT`、`EVT_TEMP_OK`、`EVT_BAT_OK` 等系统事件。
+
+## Step 10
+
+- 时间：2026-04-24 16:03:41
+- 状态：已完成
+- 结果：
+  - 新增 `src/services/sensor_service.h/.cpp`，定义 `SensorSnapshot` 并实现传感器采样服务。
+  - 新增 `src/tasks/task_sensor.h/.cpp`，实现 50ms 周期 SensorTask。
+  - SensorService 当前通过 `SensorDriver` mock 接口读取纸张、温度、电池、充电状态和电机故障。
+  - SensorService 会做基础合法性判断，并更新 `EVT_PAPER_PRESENT`、`EVT_TEMP_OK`、`EVT_BAT_OK`、`EVT_DRV_READY`。
+  - `qSensor` 已从占位队列改为长度为 1 的 `SensorSnapshot` 队列，使用覆盖写入保留最新状态。
+  - `SensorTask` 已纳入任务注册和健康心跳检查。
+  - 默认 mock 条件下，SystemTask 可从 `IDLE` 进入 `READY`。
+  - 如果 mock 配置为缺纸，`EVT_PAPER_PRESENT` 会被清除，状态机会停在 `IDLE`，不会进入 `READY`。
+  - 使用 `python -m platformio run` 编译通过。
+- 下一步建议：
+  - 下一步适合加入错误上报服务，把缺纸、温度非法、低电压和电机故障转换为统一 `AppErrorCode` 或告警事件。

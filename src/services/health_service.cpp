@@ -6,18 +6,22 @@ namespace {
 
 constexpr TickType_t kLoggerTimeoutTicks = pdMS_TO_TICKS(3000U);
 constexpr TickType_t kSystemTimeoutTicks = pdMS_TO_TICKS(1000U);
+constexpr TickType_t kSensorTimeoutTicks = pdMS_TO_TICKS(500U);
 constexpr TickType_t kMonitorTimeoutTicks = pdMS_TO_TICKS(500U);
 
 mp::HealthSnapshot g_healthSnapshot = {};
 
 // 判断一个任务是否属于当前阶段的“关键任务”。
 //
-// 目前系统里已经落地并真正运行的关键任务只有：
+// 当前阶段已经落地并真正运行的关键任务包括：
+// - SYSTEM：维护系统状态机。
+// - SENSOR：刷新纸张、温度、电池和电机故障事件。
 // - LOGGER：负责异步日志输出。
 // - MONITOR：负责心跳检查和安全收敛。
 bool IsCriticalTask(mp::TaskId id) {
   switch (id) {
     case mp::TaskId::SYSTEM:
+    case mp::TaskId::SENSOR:
     case mp::TaskId::LOGGER:
     case mp::TaskId::MONITOR:
       return true;
@@ -31,6 +35,8 @@ TickType_t GetTimeoutTicks(mp::TaskId id) {
   switch (id) {
     case mp::TaskId::SYSTEM:
       return kSystemTimeoutTicks;
+    case mp::TaskId::SENSOR:
+      return kSensorTimeoutTicks;
     case mp::TaskId::LOGGER:
       return kLoggerTimeoutTicks;
     case mp::TaskId::MONITOR:
