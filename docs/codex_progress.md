@@ -376,3 +376,18 @@
   - `make_test_print.py --pattern vertical_lines --lines 2` 生成 96 字节输出，符合每行 48 字节。
 - 下一步建议：
   - 后续应在真实串口上执行 `send_frame.py status/safe-off/sensor-test`，再进入硬件宏开启后的分阶段波形测试。
+
+## Step 23
+
+- 时间：2026-04-24 18:05:51
+- 状态：已完成
+- 结果：
+  - 分析当前仓库状态，确认项目已经按 `app/bsp/common/config/drivers/protocol/rtos/services/tasks` 分层初步落地。
+  - 新增 `docs/项目结构.md`，记录当前分析、验证结果、主要风险、完整目录结构和下一步建议。
+  - 同步更新 `docx/项目结构.md`，保持现有文档目录中的结构快照可直接查看。
+  - 修正 `docs/architecture_notes.md` 的“当前状态”，删除“仍只有 `src/main.cpp` 模板文件”的过期描述。
+  - 使用 `python -m platformio run` 编译通过。
+  - 使用 `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1"` 额外编译通过。
+  - `python tools/send_frame.py --help` 和 `python tools/make_test_print.py --help` 正常运行。
+- 下一步建议：
+  - 下一步适合接入真实串口执行 `ping/status/safe-off/sensor-test`，再进入 GPIO 波形和传感器真实读取验证。
