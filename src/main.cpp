@@ -1,5 +1,9 @@
 #include "common/app_error.h"
 #include "common/app_types.h"
+#include "config/default_params.h"
+#include "config/print_config.h"
+#include "config/project_features.h"
+#include "config/safety_limits.h"
 
 namespace {
 
@@ -12,6 +16,13 @@ const mp::PrintJobState kPrintJobStateBuildCheck = mp::PrintJobState::NONE;
 const mp::SensorValidity kSensorValidityBuildCheck = mp::SensorValidity::VALID;
 const mp::LogLevel kLogLevelBuildCheck = mp::LogLevel::INFO;
 const mp::AppErrorCode kErrorCodeBuildCheck = mp::APP_OK;
+const mp::ParamBlock kParamBlockBuildCheck = mp::DEFAULT_PARAM_BLOCK;
+const bool kFeatureBuildCheck = mp::FEATURE_HW_THERMAL_HEAD ||
+                                mp::FEATURE_HW_STEPPER || mp::FEATURE_WDT ||
+                                mp::FEATURE_WIFI || mp::FEATURE_BLE;
+const std::uint16_t kPrintDotsBuildCheck = mp::PRINT_DOTS_PER_LINE;
+const std::uint16_t kHeatDotsBuildCheck =
+    mp::SAFETY_MAX_SIMULTANEOUS_HEAT_DOTS;
 
 }  // namespace
 
@@ -22,6 +33,10 @@ void setup() {
   (void)kSensorValidityBuildCheck;
   (void)kLogLevelBuildCheck;
   (void)kErrorCodeBuildCheck;
+  (void)kParamBlockBuildCheck;
+  (void)kFeatureBuildCheck;
+  (void)kPrintDotsBuildCheck;
+  (void)kHeatDotsBuildCheck;
 }
 
 void loop() {
