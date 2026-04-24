@@ -1,5 +1,7 @@
 #include "drivers/stepper/drv_stepper.h"
 
+#include "config/project_features.h"
+
 namespace {
 
 // Mock 版本的步进电机驱动。
@@ -45,7 +47,11 @@ MockStepperDriver g_mockStepperDriver;
 
 namespace mp {
 
-StepperDriver& GetStepperDriver() { return g_mockStepperDriver; }
+StepperDriver& GetStepperMockDriver() { return g_mockStepperDriver; }
+
+#if !MP_ENABLE_HW_STEPPER
+StepperDriver& GetStepperDriver() { return GetStepperMockDriver(); }
+#endif
 
 const StepperMockStats& StepperMock_GetStats() {
   return g_mockStepperDriver.stats();

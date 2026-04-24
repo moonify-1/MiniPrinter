@@ -66,6 +66,12 @@ struct StepperMockStats {
 // 后续替换真实驱动时，上层仍然只通过 StepperDriver 接口调用。
 StepperDriver& GetStepperDriver();
 
+// 获取 mock 步进电机驱动实例。
+//
+// 默认硬件功能关闭时，GetStepperDriver() 会继续返回 mock。
+// 真实硬件分支如果需要做对比测试，也可以显式拿到 mock。
+StepperDriver& GetStepperMockDriver();
+
 // 读取 / 清零 mock 统计。
 const StepperMockStats& StepperMock_GetStats();
 void StepperMock_ResetStats();

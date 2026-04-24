@@ -244,3 +244,22 @@
   - 已按要求创建 git commit。
 - 下一步建议：
   - 下一步适合建立 PrintCtrlTask 的安全调度骨架，先串联 LineBuffer、SensorSnapshot、ParamBlock 和 ThermalSafetyService，默认仍不启用真实打印头硬件。
+
+## Step 16
+
+- 时间：2026-04-24 16:38:44
+- 状态：已完成
+- 结果：
+  - 新增 `src/drivers/stepper/drv_stepper_drv8833.cpp`，实现 DRV8833 步进电机真实驱动安全骨架。
+  - 修改 `src/drivers/stepper/drv_stepper.h` 和 `src/drivers/stepper/drv_stepper_mock.cpp` 相关 mock 入口，默认 `MP_ENABLE_HW_STEPPER=0` 时 `GetStepperDriver()` 继续返回 mock。
+  - `MP_ENABLE_HW_STEPPER=1` 时才编译真实 DRV8833 GPIO 操作路径。
+  - `init()` 第一件事执行 nSLEEP low 和 AIN/BIN 全 low，随后再配置 GPIO 输出模式。
+  - `wake()` 拉高 nSLEEP 后等待至少 1ms。
+  - `isFault()` 按 nFAULT 低电平有效处理，检测到 fault 后立即 release 并 sleep。
+  - `stepForward()` 和 `stepBackward()` 使用清晰 4-step 全步相序表，不做打印许可等业务判断。
+  - 本步骤没有创建独立 task，没有接入 PrintEngineTask，也没有自动执行电机测试。
+  - 使用 `python -m platformio run` 编译通过。
+  - 额外使用 `PLATFORMIO_BUILD_FLAGS=-DMP_ENABLE_HW_STEPPER=1` 编译通过，确认真实硬件分支可编译。
+  - 已按要求创建 git commit。
+- 下一步建议：
+  - 下一步适合建立 PrintEngineTask 或 PrintCtrlTask 的安全调度骨架，先以 mock driver 串联走纸/出行节奏，再决定是否开启真实电机。
