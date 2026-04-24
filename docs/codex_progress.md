@@ -325,3 +325,17 @@
   - 已按要求创建 git commit。
 - 下一步建议：
   - 下一步适合执行 Step 20，将真实 Watchdog 接入 MonitorTask，并确保只有 MonitorTask 能喂狗。
+
+## Step 20
+
+- 时间：2026-04-24 17:13:31
+- 状态：已完成
+- 结果：
+  - 新增 `src/bsp/bsp_watchdog.h/.cpp`，封装 ESP32 Task Watchdog 初始化、MonitorTask 喂狗和复位原因读取。
+  - 修改 `src/tasks/task_monitor.cpp`，仅在 `MP_ENABLE_WDT=1` 时初始化真实 WDT，并且只有关键任务心跳正常、无 FATAL/SAFE_MODE 请求时才喂狗。
+  - 修改 `src/services/health_service.cpp`，关键任务集合保留 SYSTEM、SENSOR、MONITOR、PRINT_CTRL，LOGGER 不再触发复位。
+  - 修改 `src/config/safety_limits.h`，新增 `SAFETY_WDT_TIMEOUT_MS = 5000`。
+  - 关键任务超时时会先执行 `Bsp_SetAllOutputsSafe()`，再通过 `Error_Report(ERR_WDT_TASK_TIMEOUT, ...)` 上报 FATAL，并停止喂狗。
+  - `Bsp_WatchdogResetReasonText()` 已实现复位原因读取，后续可用于启动日志和故障分析。
+- 下一步建议：
+  - 下一步适合执行 Step 21，增加 Factory Test / Debug Commands，并确认危险测试默认受硬件宏和安全条件保护。

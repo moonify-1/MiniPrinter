@@ -20,6 +20,13 @@ constexpr std::uint8_t SAFETY_FORBID_HEAT_WHEN_PAPER_MISSING = 1U;
 constexpr std::uint8_t SAFETY_FORBID_HEAT_WHEN_LOW_VOLTAGE = 1U;
 constexpr std::uint8_t SAFETY_FORBID_FAST_MOTOR_WHEN_LOW_VOLTAGE = 1U;
 
+// 开发阶段真实 Watchdog 超时时间。
+//
+// 选择 5000ms 的原因：
+// - 足够长：避免普通日志输出、串口调试或短时间临界区误触发复位。
+// - 足够短：关键任务真的卡死时，系统不会长时间保持未知状态。
+constexpr std::uint32_t SAFETY_WDT_TIMEOUT_MS = 5000U;
+
 static_assert(SAFETY_DEFAULT_TEMP_RESUME_THRESHOLD_C <
                   SAFETY_DEFAULT_TEMP_STOP_THRESHOLD_C,
               "resume temperature must be lower than stop temperature");

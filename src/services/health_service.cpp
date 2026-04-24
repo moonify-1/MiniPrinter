@@ -4,7 +4,6 @@
 
 namespace {
 
-constexpr TickType_t kLoggerTimeoutTicks = pdMS_TO_TICKS(3000U);
 constexpr TickType_t kSystemTimeoutTicks = pdMS_TO_TICKS(1000U);
 constexpr TickType_t kSensorTimeoutTicks = pdMS_TO_TICKS(500U);
 constexpr TickType_t kMonitorTimeoutTicks = pdMS_TO_TICKS(500U);
@@ -12,19 +11,19 @@ constexpr TickType_t kPrintTimeoutTicks = pdMS_TO_TICKS(1000U);
 
 mp::HealthSnapshot g_healthSnapshot = {};
 
-// 判断一个任务是否属于当前阶段的“关键任务”。
+// 判断一个任务是否属于 Watchdog 喂狗条件里的“关键任务”。
 //
-// 当前阶段已经落地并真正运行的关键任务包括：
+// 关键任务只保留会直接影响安全状态和打印动作的任务：
 // - SYSTEM：维护系统状态机。
-// - SENSOR：刷新纸张、温度、电池和电机故障事件。
-// - LOGGER：负责异步日志输出。
-// - MONITOR：负责心跳检查和安全收敛。
-// - PRINT_CTRL：打印流程执行任务，超时后应停止所有输出。
+// - SENSOR：刷新纸张、温度、电池和电机故障状态。
+// - MONITOR：执行心跳检查和安全收敛。
+// - PRINT_CTRL：执行打印流程，卡死时必须停止输出。
+//
+// LOGGER 不在这里：日志任务卡住会影响可观测性，但不应直接触发硬件复位。
 bool IsCriticalTask(mp::TaskId id) {
   switch (id) {
     case mp::TaskId::SYSTEM:
     case mp::TaskId::SENSOR:
-    case mp::TaskId::LOGGER:
     case mp::TaskId::MONITOR:
     case mp::TaskId::PRINT_CTRL:
       return true;
@@ -33,15 +32,16 @@ bool IsCriticalTask(mp::TaskId id) {
   }
 }
 
-// 获取指定任务的允许心跳超时时间。
+// 获取指定关键任务允许的最大心跳间隔。
+//
+// FreeRTOS 的 TickType_t 是系统 tick 计数类型；pdMS_TO_TICKS() 会把毫秒
+// 转成 tick，避免手工依赖 configTICK_RATE_HZ。
 TickType_t GetTimeoutTicks(mp::TaskId id) {
   switch (id) {
     case mp::TaskId::SYSTEM:
       return kSystemTimeoutTicks;
     case mp::TaskId::SENSOR:
       return kSensorTimeoutTicks;
-    case mp::TaskId::LOGGER:
-      return kLoggerTimeoutTicks;
     case mp::TaskId::MONITOR:
       return kMonitorTimeoutTicks;
     case mp::TaskId::PRINT_CTRL:
@@ -52,6 +52,8 @@ TickType_t GetTimeoutTicks(mp::TaskId id) {
 }
 
 // 生成一份“全健康”的默认快照。
+//
+// Health_Init() 会使用它建立初始状态；后续 Health_CheckAll() 会覆盖为真实检查结果。
 mp::HealthSnapshot MakeDefaultSnapshot() {
   mp::HealthSnapshot snapshot = {};
   snapshot.snapshotTick = xTaskGetTickCount();
@@ -116,11 +118,6 @@ bool Health_CheckAll() {
       break;
     }
   }
-
-#if MP_ENABLE_WDT
-  // 这里仅保留后续软件/硬件 WDT 集成的预留位置。
-  // Step 07 明确不启用真实 Watchdog，因此当前不做任何喂狗或配置动作。
-#endif
 
   g_healthSnapshot = snapshot;
   return snapshot.allHealthy;
