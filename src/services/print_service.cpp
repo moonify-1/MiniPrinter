@@ -1,5 +1,7 @@
 #include "services/print_service.h"
 
+#include "app/app_system.h"
+#include "config/project_features.h"
 #include "rtos/rtos_objects.h"
 #include "services/thermal_safety_service.h"
 
@@ -118,6 +120,33 @@ AppErrorCode PrintService_BuildLinePlan(const LineBuffer* line,
   }
 
   return APP_OK;
+}
+
+bool PrintService_IsRealPrintHardwareEnabled() {
+#if MP_ENABLE_HW_THERMAL_HEAD && MP_ENABLE_HW_STEPPER
+  return true;
+#else
+  return false;
+#endif
+}
+
+AppErrorCode PrintService_CheckRealPrintAllowed(const SensorSnapshot& sensor,
+                                                const ParamBlock& params) {
+  if (!PrintService_IsRealPrintHardwareEnabled()) {
+    return ERR_HW_DISABLED;
+  }
+
+  if (SystemApp_GetState() != SystemState::RUNNING) {
+    return ERR_SYS_INIT_FAILED;
+  }
+
+  // ThermalSafety_CheckCanPrint() 内部会检查：
+  // - 纸张存在。
+  // - 传感器读数有效。
+  // - 温度未超过停机阈值。
+  // - 电池未低于保守低电压阈值。
+  // - 电机驱动未报告故障。
+  return ThermalSafety_CheckCanPrint(sensor, params);
 }
 
 void PrintService_ReportError(AppErrorCode error) {

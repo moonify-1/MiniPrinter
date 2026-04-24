@@ -59,6 +59,21 @@ AppErrorCode PrintService_BuildLinePlan(const LineBuffer* line,
                                         const ParamBlock& params,
                                         PrintLinePlan* plan);
 
+// 判断是否启用真实打印硬件路径。
+//
+// 为避免“真实加热但电机仍是 mock”的危险组合，
+// 当前真实路径要求热敏头和步进电机两个硬件开关都启用。
+bool PrintService_IsRealPrintHardwareEnabled();
+
+// 检查当前这一行是否允许调用真实 ThermalHeadDriver。
+//
+// 这个函数不操作 GPIO，只做保护条件判断：
+// - 硬件功能开关。
+// - 系统状态必须为 RUNNING。
+// - 传感器必须有效，且纸张、温度、电池、电机故障状态满足安全要求。
+AppErrorCode PrintService_CheckRealPrintAllowed(const SensorSnapshot& sensor,
+                                                const ParamBlock& params);
+
 // 上报打印错误。
 //
 // 该函数会尽量向 qError 投递错误码，并设置错误事件位。

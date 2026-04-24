@@ -83,6 +83,12 @@ AppErrorCode ThermalSafety_CheckCanPrint(const SensorSnapshot& sensorSnapshot,
     return ERR_SENSOR_TEMP_INVALID;
   }
 
+  // 电机驱动故障时禁止继续加热。
+  // 原因是打印头加热后必须及时走纸，否则同一位置反复受热会带来风险。
+  if (sensorSnapshot.motorFault) {
+    return ERR_MOTOR_FAULT;
+  }
+
   if (sensorSnapshot.headTempC >= params.safety.tempStopThresholdC) {
     return ERR_HEAD_OVER_TEMP;
   }

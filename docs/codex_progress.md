@@ -285,3 +285,24 @@
   - 已按要求创建 git commit。
 - 下一步建议：
   - 下一步适合补一个主机侧 Python 测试脚本，自动构造 `PRINT_START -> PRINT_LINE* -> PRINT_END` 帧并校验响应与日志。
+
+## Step 18
+
+- 时间：2026-04-24 16:56:30
+- 状态：已完成
+- 结果：
+  - 修改 `src/tasks/task_print_engine.cpp`，加入真实打印硬件接入保护层。
+  - 修改 `src/services/print_service.h/.cpp`，新增真实硬件路径启用判断和真实打印许可检查。
+  - 修改 `src/services/thermal_safety_service.cpp`，将 `motorFault` 纳入禁止加热条件。
+  - 修改 `src/drivers/thermal_head/drv_thermal_head.h` 及 mock/esp32 实现，让 `latch/setVh/pulseStbGroup/allStbOff/setSafe` 返回 `bool`，便于 PrintEngine 捕获失败。
+  - 默认宏关闭时仍走 mock 打印路径，不调用真实 ThermalHeadDriver 或真实 StepperDriver。
+  - 真实路径要求 `MP_ENABLE_HW_THERMAL_HEAD=1` 且 `MP_ENABLE_HW_STEPPER=1`，避免真实加热但电机仍为 mock。
+  - 真实路径每行都会重新读取最近 `SensorSnapshot`，并检查系统状态为 `RUNNING`、传感器有效、有纸、温度 OK、电池 OK、无电机故障。
+  - 每行真实流程按 `shiftLine48Bytes -> latch -> setVh(true) -> 逐组 STB pulse -> allStbOff -> setVh(false) -> stepper 走纸 -> free line buffer` 执行。
+  - `groupBlackDots=0` 或 `pulseUs=0` 时跳过对应 STB pulse。
+  - 任意步骤失败时执行 `allStbOff`、`setVh(false)`、`stepper.release()`、`Bsp_SetAllOutputsSafe()`、投递 `qError` 并清理排队行。
+  - 使用 `python -m platformio run` 编译通过。
+  - 额外使用 `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1"` 编译通过。
+  - 已按要求创建 git commit。
+- 下一步建议：
+  - 下一步适合补主机侧协议测试脚本，并在真实硬件测试前先做无纸/缺纸/过温/低电压保护路径验证。

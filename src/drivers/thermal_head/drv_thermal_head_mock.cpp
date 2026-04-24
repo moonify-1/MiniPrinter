@@ -15,22 +15,35 @@ class MockThermalHeadDriver final : public mp::ThermalHeadDriver {
     return true;
   }
 
-  void setSafe() override { stats_.setSafeCount++; }
+  bool setSafe() override {
+    stats_.setSafeCount++;
+    return true;
+  }
 
   bool shiftLine48Bytes(const uint8_t* data, size_t len) override {
     stats_.shiftLine48BytesCount++;
     return data != nullptr && len == 48U;
   }
 
-  void latch() override { stats_.latchCount++; }
-
-  void setVh(bool /*enable*/) override { stats_.setVhCount++; }
-
-  void pulseStbGroup(uint8_t /*group*/, uint32_t /*pulseUs*/) override {
-    stats_.pulseStbGroupCount++;
+  bool latch() override {
+    stats_.latchCount++;
+    return true;
   }
 
-  void allStbOff() override { stats_.allStbOffCount++; }
+  bool setVh(bool /*enable*/) override {
+    stats_.setVhCount++;
+    return true;
+  }
+
+  bool pulseStbGroup(uint8_t group, uint32_t /*pulseUs*/) override {
+    stats_.pulseStbGroupCount++;
+    return group < 6U;
+  }
+
+  bool allStbOff() override {
+    stats_.allStbOffCount++;
+    return true;
+  }
 
   const mp::ThermalHeadMockStats& stats() const { return stats_; }
 

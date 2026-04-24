@@ -27,7 +27,7 @@ class ThermalHeadDriver {
   //
   // 真实实现应关闭 VH、关闭全部 STB，并把数据线恢复到安全电平。
   // Mock 实现不操作 GPIO，只记录调用次数。
-  virtual void setSafe() = 0;
+  virtual bool setSafe() = 0;
 
   // 向打印头移入一行 48 字节点阵数据。
   //
@@ -36,22 +36,22 @@ class ThermalHeadDriver {
   virtual bool shiftLine48Bytes(const uint8_t* data, size_t len) = 0;
 
   // 锁存当前已经移入的数据。
-  virtual void latch() = 0;
+  virtual bool latch() = 0;
 
   // 控制 VH 电源开关。
   //
   // 注意：这里只是接口定义。Mock 不会打开任何硬件电源。
   // 真实实现接入前，仍必须由 safety 层统一决定是否允许 enable=true。
-  virtual void setVh(bool enable) = 0;
+  virtual bool setVh(bool enable) = 0;
 
   // 对指定 STB 分组输出一个加热脉冲。
   //
   // group 是 STB 分组号，建议后续使用 0~5 表示 STB1~STB6。
   // pulseUs 是脉冲宽度，单位微秒。
-  virtual void pulseStbGroup(uint8_t group, uint32_t pulseUs) = 0;
+  virtual bool pulseStbGroup(uint8_t group, uint32_t pulseUs) = 0;
 
   // 关闭全部 STB 输出。
-  virtual void allStbOff() = 0;
+  virtual bool allStbOff() = 0;
 };
 
 // ThermalHead mock 调用统计。

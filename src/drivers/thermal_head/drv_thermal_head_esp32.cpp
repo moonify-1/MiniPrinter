@@ -38,21 +38,21 @@ class Esp32ThermalHeadDriver final : public mp::ThermalHeadDriver {
  public:
   bool init() override {
     // init 的第一件事必须回到安全输出：STB 全关，VH 关闭。
-    allStbOff();
-    setVh(false);
+    (void)allStbOff();
+    (void)setVh(false);
 
     ConfigureOutputs();
-    allStbOff();
-    setVh(false);
-    return mp::Bsp_SpiThermalHeadInit();
+    const bool outputSafe = allStbOff() && setVh(false);
+    return outputSafe && mp::Bsp_SpiThermalHeadInit();
   }
 
-  void setSafe() override {
-    setVh(false);
-    allStbOff();
+  bool setSafe() override {
+    bool ok = setVh(false);
+    ok = allStbOff() && ok;
     mp::Bsp_WritePinIfValid(mp::PIN_DI, LOW);
     mp::Bsp_WritePinIfValid(mp::PIN_CLK, LOW);
     mp::Bsp_WritePinIfValid(mp::PIN_LAT, LOW);
+    return ok;
   }
 
   bool shiftLine48Bytes(const std::uint8_t* data, std::size_t len) override {
@@ -63,30 +63,40 @@ class Esp32ThermalHeadDriver final : public mp::ThermalHeadDriver {
     return mp::Bsp_SpiThermalHeadWrite(data, len);
   }
 
-  void latch() override {
+  bool latch() override {
+    if (!mp::Bsp_IsValidPin(mp::PIN_LAT)) {
+      return false;
+    }
+
     // LAT 脉冲现在用 GPIO 翻转和短延时实现。
     // 后续必须用示波器确认真实脉宽是否满足打印头时序。
     mp::Bsp_WritePinIfValid(mp::PIN_LAT, HIGH);
     mp::Bsp_DelayUs(kLatchPulseUs);
     mp::Bsp_WritePinIfValid(mp::PIN_LAT, LOW);
+    return true;
   }
 
-  void setVh(bool enable) override {
+  bool setVh(bool enable) override {
     // 打开 VH 前必须确认全部 STB 都处于 inactive。
     // 原因：如果某个 STB 仍有效，打开 VH 可能立即形成加热通路。
     if (enable && !AreAllStbInactive()) {
-      return;
+      return false;
+    }
+
+    if (!mp::Bsp_IsValidPin(mp::PIN_G_VH)) {
+      return false;
     }
 
     mp::Bsp_WritePinIfValid(mp::PIN_G_VH, enable ? LEVEL_VH_ON : LEVEL_VH_OFF);
     vhEnabled_ = enable;
+    return true;
   }
 
-  void pulseStbGroup(std::uint8_t group, std::uint32_t pulseUs) override {
+  bool pulseStbGroup(std::uint8_t group, std::uint32_t pulseUs) override {
     // group 使用 0..5 映射 STB1..STB6。
     // pulseUs 为 0 表示本组不需要加热，此时不能输出任何 STB 脉冲。
     if (group >= 6U || pulseUs == 0U) {
-      return;
+      return false;
     }
 
     // driver 层仍做一次硬上限裁剪，作为 safety 层之外的最后保险。
@@ -95,18 +105,26 @@ class Esp32ThermalHeadDriver final : public mp::ThermalHeadDriver {
     }
 
     const int pin = kStbPins[group];
+    if (!mp::Bsp_IsValidPin(pin)) {
+      return false;
+    }
+
     stbInactive_[group] = false;
     mp::Bsp_WritePinIfValid(pin, LEVEL_STB_ACTIVE);
     mp::Bsp_DelayUs(pulseUs);
     mp::Bsp_WritePinIfValid(pin, LEVEL_STB_INACTIVE);
     stbInactive_[group] = true;
+    return true;
   }
 
-  void allStbOff() override {
+  bool allStbOff() override {
+    bool ok = true;
     for (std::uint8_t group = 0U; group < 6U; ++group) {
+      ok = mp::Bsp_IsValidPin(kStbPins[group]) && ok;
       mp::Bsp_WritePinIfValid(kStbPins[group], LEVEL_STB_INACTIVE);
       stbInactive_[group] = true;
     }
+    return ok;
   }
 
  private:
@@ -150,12 +168,18 @@ ThermalHeadDriver& GetThermalHeadDriver() {
 AppErrorCode ThermalHead_DebugWaveformTest() {
   // 这个函数只供未来 debug 命令显式调用。
   // 它保持 VH 关闭，只观察 LAT/STB 低风险波形，不做真实加热。
-  g_esp32ThermalHeadDriver.setSafe();
-  g_esp32ThermalHeadDriver.latch();
-  for (std::uint8_t group = 0U; group < 6U; ++group) {
-    g_esp32ThermalHeadDriver.pulseStbGroup(group, kDebugStbPulseUs);
+  if (!g_esp32ThermalHeadDriver.setSafe()) {
+    return ERR_HW_DISABLED;
   }
-  g_esp32ThermalHeadDriver.setSafe();
+  if (!g_esp32ThermalHeadDriver.latch()) {
+    return ERR_HW_DISABLED;
+  }
+  for (std::uint8_t group = 0U; group < 6U; ++group) {
+    if (!g_esp32ThermalHeadDriver.pulseStbGroup(group, kDebugStbPulseUs)) {
+      return ERR_HW_DISABLED;
+    }
+  }
+  (void)g_esp32ThermalHeadDriver.setSafe();
   return APP_OK;
 }
 
