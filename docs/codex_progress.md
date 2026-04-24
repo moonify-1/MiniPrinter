@@ -58,3 +58,17 @@
   - BSP 层按设计允许包含 `Arduino.h`，当前仅在 `bsp_gpio.cpp` 和 `bsp_board.cpp` 中使用。
 - 下一步建议：
   - 下一步适合补 Step 05：把输入读取和板级状态采样做成只读接口，例如纸检测、故障脚、按键、电池状态，但仍然不要接真实打印或电机驱动。
+
+## Step 05
+
+- 时间：2026-04-24 13:06:00
+- 状态：已完成
+- 结果：
+  - 新增 `src/rtos/rtos_objects.h/.cpp`，定义系统事件组、队列、互斥量和统一创建入口。
+  - 新增 `src/rtos/task_registry.h/.cpp`，定义任务编号、登记接口、心跳接口和健康快照结构。
+  - `main.cpp` 已在 `Bsp_Init()` 后调用 `Rtos_CreateObjects()`，创建失败时会回退到安全输出并打印错误。
+  - 当前只提供 RTOS 对象和任务注册表接口，没有创建实际任务。
+  - 当前队列使用 `uint32_t` 占位元素，后续需要按真实消息结构替换。
+  - 使用 `python -m platformio run` 编译通过。
+- 下一步建议：
+  - 下一步适合建立 `services` 或 `app` 层的系统状态容器，并把 `stateMutex` 和 `paramMutex` 真正接入读写路径。
