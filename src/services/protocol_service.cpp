@@ -9,14 +9,16 @@
 #include "protocol/proto_crc.h"
 #include "rtos/rtos_objects.h"
 #include "services/param_service.h"
+#include "services/print_spooler.h"
 #include "services/sensor_service.h"
 
 namespace {
 
 constexpr std::uint16_t kDeviceIdDefault = 1U;
 constexpr std::size_t kStatusPayloadLen = 160U;
-constexpr std::size_t kInfoPayloadLen = 96U;
+constexpr std::size_t kInfoPayloadLen = 128U;
 constexpr std::size_t kParamPayloadLen = 160U;
+constexpr std::size_t kPrintPayloadLen = 80U;
 
 void WriteLe16(std::uint8_t* data, std::uint16_t value) {
   data[0] = static_cast<std::uint8_t>(value & 0x00FFU);
@@ -121,7 +123,7 @@ void HandleGetInfo(const mp::ProtoFrame& frame) {
   std::uint8_t payload[kInfoPayloadLen] = {};
   const std::uint16_t payloadLen = CopyTextPayload(
       payload, sizeof(payload),
-      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_PARAM,SAVE_PARAM,FACTORY_RESET");
+      "MiniPrinterRTOS;proto=1;cmd=PING,GET_INFO,GET_STATUS,GET_PARAM,SAVE_PARAM,FACTORY_RESET,PRINT_LINE");
   (void)SendResponse(frame, 0U, payload, payloadLen);
 }
 
@@ -156,6 +158,23 @@ void HandleUnsupported(const mp::ProtoFrame& frame) {
   constexpr std::uint8_t payload[] = {
       'E', 'R', 'R', '_', 'U', 'N', 'S', 'U', 'P', 'P', 'O', 'R', 'T', 'E', 'D'};
   (void)SendResponse(frame, mp::PROTO_FLAG_ERROR, payload, sizeof(payload));
+}
+
+void SendErrorCode(const mp::ProtoFrame& frame, mp::AppErrorCode error) {
+  std::uint8_t payload[kPrintPayloadLen] = {};
+  const int written = std::snprintf(
+      reinterpret_cast<char*>(payload), sizeof(payload), "ERR=0x%08lX",
+      static_cast<unsigned long>(error));
+
+  std::uint16_t payloadLen = 0U;
+  if (written > 0) {
+    const std::size_t len = static_cast<std::size_t>(written);
+    payloadLen =
+        static_cast<std::uint16_t>((len < sizeof(payload)) ? len
+                                                           : (sizeof(payload) - 1U));
+  }
+
+  (void)SendResponse(frame, mp::PROTO_FLAG_ERROR, payload, payloadLen);
 }
 
 void HandleGetParam(const mp::ProtoFrame& frame) {
@@ -214,6 +233,48 @@ void HandleFactoryReset(const mp::ProtoFrame& frame) {
   }
 }
 
+void HandlePrintLine(const mp::ProtoFrame& frame) {
+  if (frame.payloadLen != mp::LINE_BUFFER_DATA_SIZE) {
+    SendErrorCode(frame, mp::ERR_COMM_FRAME_TOO_LONG);
+    return;
+  }
+
+  mp::LineBuffer* line = mp::PrintSpooler_AllocLine(0U);
+  if (line == nullptr) {
+    SendErrorCode(frame, mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  line->jobId = frame.seq;
+  line->lineNo = 0U;
+  std::memcpy(line->data, frame.payload, sizeof(line->data));
+  line->blackDotCount =
+      mp::PrintSpooler_CountBlackDots(line->data, sizeof(line->data));
+  line->flags = 0U;
+
+  const mp::AppErrorCode result = mp::PrintSpooler_SubmitLine(line);
+  if (result != mp::APP_OK) {
+    (void)mp::PrintSpooler_FreeLine(line);
+    SendErrorCode(frame, result);
+    return;
+  }
+
+  std::uint8_t payload[kPrintPayloadLen] = {};
+  const int written = std::snprintf(
+      reinterpret_cast<char*>(payload), sizeof(payload),
+      "PRINT_LINE_QUEUED,black=%u", static_cast<unsigned>(line->blackDotCount));
+
+  std::uint16_t payloadLen = 0U;
+  if (written > 0) {
+    const std::size_t len = static_cast<std::size_t>(written);
+    payloadLen =
+        static_cast<std::uint16_t>((len < sizeof(payload)) ? len
+                                                           : (sizeof(payload) - 1U));
+  }
+
+  (void)SendResponse(frame, 0U, payload, payloadLen);
+}
+
 }  // namespace
 
 namespace mp {
@@ -264,6 +325,9 @@ void ProtocolService_HandleFrame(const ProtoFrame& frame) {
       break;
     case ProtoCmd::FACTORY_RESET:
       HandleFactoryReset(frame);
+      break;
+    case ProtoCmd::PRINT_LINE:
+      HandlePrintLine(frame);
       break;
     default:
       HandleUnsupported(frame);

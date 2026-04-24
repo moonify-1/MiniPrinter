@@ -2,9 +2,10 @@
 
 #include <cstdint>
 
+#include "common/fixed_pool.h"
+#include "protocol/proto_frame.h"
 #include "services/log_service.h"
 #include "services/sensor_service.h"
-#include "protocol/proto_frame.h"
 
 namespace {
 
@@ -14,7 +15,8 @@ using QueuePlaceholder = std::uint32_t;
 
 constexpr UBaseType_t kLogQueueLength = 16U;
 constexpr UBaseType_t kDefaultQueueLength = 8U;
-constexpr UBaseType_t kLineQueueLength = 4U;
+constexpr UBaseType_t kLineQueueLength =
+    static_cast<UBaseType_t>(mp::LINE_BUFFER_POOL_SIZE);
 constexpr UBaseType_t kSensorQueueLength = 1U;
 constexpr UBaseType_t kCommandQueueLength = 4U;
 
@@ -54,6 +56,14 @@ QueueHandle_t CreateSensorQueue() {
 // ProtocolTask 放入完整 ProtoFrame，CommandTask 取出并分发。
 QueueHandle_t CreateCommandQueue() {
   return xQueueCreate(kCommandQueueLength, sizeof(mp::ProtoFrame));
+}
+
+// 创建行缓冲指针队列。
+//
+// LineBuffer 本体存放在固定池中，队列只传指针，
+// 这样不会在 FreeRTOS 队列里反复复制 48 字节数据。
+QueueHandle_t CreateLineBufferPointerQueue() {
+  return xQueueCreate(kLineQueueLength, sizeof(mp::LineBuffer*));
 }
 
 // 删除单个队列并清空句柄。
@@ -125,8 +135,8 @@ bool Rtos_CreateObjects() {
   g_rtos.qError = CreatePlaceholderQueue(kDefaultQueueLength);
   g_rtos.qCommand = CreateCommandQueue();
   g_rtos.qPrintCtrl = CreatePlaceholderQueue(kDefaultQueueLength);
-  g_rtos.qLineReady = CreatePlaceholderQueue(kLineQueueLength);
-  g_rtos.qLineFree = CreatePlaceholderQueue(kLineQueueLength);
+  g_rtos.qLineReady = CreateLineBufferPointerQueue();
+  g_rtos.qLineFree = CreateLineBufferPointerQueue();
   g_rtos.qSensor = CreateSensorQueue();
   g_rtos.qParam = CreatePlaceholderQueue(kDefaultQueueLength);
 

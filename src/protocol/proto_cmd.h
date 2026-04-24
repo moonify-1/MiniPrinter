@@ -15,6 +15,7 @@ enum class ProtoCmd : std::uint16_t {
   SET_PARAM = 0x0102U,
   SAVE_PARAM = 0x0103U,
   FACTORY_RESET = 0x0104U,
+  PRINT_LINE = 0x0201U,
 };
 
 // 把原始 uint16_t 转成命令枚举。

@@ -14,6 +14,7 @@
 #include "services/health_service.h"
 #include "services/log_service.h"
 #include "services/param_service.h"
+#include "services/print_spooler.h"
 #include "tasks/task_command.h"
 #include "tasks/task_log.h"
 #include "tasks/task_monitor.h"
@@ -72,6 +73,12 @@ void setup() {
   if (!mp::Rtos_CreateObjects()) {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: Rtos_CreateObjects failed");
+    return;
+  }
+
+  if (!mp::PrintSpooler_Init()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: PrintSpooler_Init failed");
     return;
   }
 
@@ -134,5 +141,5 @@ void setup() {
 }
 
 void loop() {
-  // Step 11 仍然只保留最小主循环，不写业务逻辑。
+  // Step 13 仍然只保留最小主循环，不写业务逻辑。
 }

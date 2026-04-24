@@ -188,3 +188,21 @@
   - 已按新要求创建 git commit。
 - 下一步建议：
   - 下一步适合为 `GET_PARAM/SET_PARAM` 定义正式 payload 格式，避免长期使用文本响应。
+
+## Step 13
+
+- 时间：2026-04-24 16:21:05
+- 状态：已完成
+- 结果：
+  - 新增 `src/common/fixed_pool.h/.cpp`，定义 `LineBuffer` 和 64 行静态 `LineBuffer` 池。
+  - 新增 `src/services/print_spooler.h/.cpp`，实现行缓冲申请、提交、释放和按 job 清理。
+  - `qLineFree` 和 `qLineReady` 已改为 `LineBuffer*` 队列，容量与固定池一致。
+  - 启动时 `PrintSpooler_Init()` 会清空行池，并把全部 `LineBuffer` 放入 `qLineFree`。
+  - 新增协议命令 `PRINT_LINE`，payload 必须为 48 bytes。
+  - `PRINT_LINE` 当前只计算 `blackDotCount` 并把行放入 `qLineReady`，不会启动真实打印。
+  - 队列满或无空闲行时返回 `ERR_QUEUE_FULL`。
+  - 没有操作打印头、电机、VH 或 STB。
+  - 使用 `python -m platformio run` 编译通过。
+  - 已按要求创建 git commit。
+- 下一步建议：
+  - 下一步适合建立 PrintCtrlTask，只消费 `qLineReady` 做状态推进和安全检查，仍先不接真实打印头加热。
