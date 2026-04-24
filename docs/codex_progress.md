@@ -358,3 +358,21 @@
   - 使用 `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1"` 额外编译通过。
 - 下一步建议：
   - 下一步适合执行 Step 22，补充主机侧测试脚本和验收文档，用脚本实际发送 `STATUS`、`SAFE_OFF`、`SENSOR_TEST` 帧。
+
+## Step 22
+
+- 时间：2026-04-24 17:28:53
+- 状态：已完成
+- 结果：
+  - 新增 `tools/send_frame.py`，可构造 MiniPrinterRTOS UART 协议帧。
+  - `send_frame.py` 支持 `ping`、`status`、`safe-off`、`sensor-test` 和 `print-test`。
+  - `print-test` 会发送 `PRINT_START -> PRINT_LINE* -> PRINT_END`，行数据可从文件读取或按 pattern 生成。
+  - 新增 `tools/make_test_print.py`，可生成 `blank`、`checker`、`vertical_lines`、`low_density_black` 测试图。
+  - 新增 `docs/test_plan.md`，覆盖编译、启动、GPIO 安全态、UART 协议、Sensor mock、Queue 满、SAFE_MODE、Watchdog、打印头波形、电机低速测试。
+  - 新增 `docs/acceptance.md`，记录可量化验收标准。
+  - 使用 `python -m platformio run` 编译通过。
+  - `python tools/send_frame.py --help` 和 `python tools/make_test_print.py --help` 正常运行。
+  - `send_frame.py ping --dry-run` 和 `print-test --dry-run --lines 1` 可正常构造帧。
+  - `make_test_print.py --pattern vertical_lines --lines 2` 生成 96 字节输出，符合每行 48 字节。
+- 下一步建议：
+  - 后续应在真实串口上执行 `send_frame.py status/safe-off/sensor-test`，再进入硬件宏开启后的分阶段波形测试。
