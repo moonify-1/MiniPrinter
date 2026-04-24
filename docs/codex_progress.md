@@ -72,3 +72,18 @@
   - 使用 `python -m platformio run` 编译通过。
 - 下一步建议：
   - 下一步适合建立 `services` 或 `app` 层的系统状态容器，并把 `stateMutex` 和 `paramMutex` 真正接入读写路径。
+
+## Step 06
+
+- 时间：2026-04-24 13:14:14
+- 状态：已完成
+- 结果：
+  - 新增 `src/services/log_service.h/.cpp`，实现固定长度异步日志服务。
+  - 新增 `src/tasks/task_log.h/.cpp`，实现低优先级日志任务与心跳上报。
+  - `src/rtos/rtos_objects.cpp` 中的 `qLog` 已改为真实 `LogMsg` 队列，其余队列仍保持占位结构。
+  - `main.cpp` 已在 RTOS 对象创建后初始化日志，并创建 `LogTask`。
+  - 启动时会写入一条 `Async log ready` 日志，用于验证异步日志链路。
+  - 当前未在 ISR 中提供日志接口。
+  - 使用 `python -m platformio run` 编译通过。
+- 下一步建议：
+  - 下一步适合把 `qError`、`qCommand`、`qSensor` 等队列逐步替换成真实消息结构，并让更多任务通过 `LogService` 统一输出日志。
