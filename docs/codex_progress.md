@@ -206,3 +206,21 @@
   - 已按要求创建 git commit。
 - 下一步建议：
   - 下一步适合建立 PrintCtrlTask，只消费 `qLineReady` 做状态推进和安全检查，仍先不接真实打印头加热。
+
+## Step 14
+
+- 时间：2026-04-24 16:25:18
+- 状态：已完成
+- 结果：
+  - 新增 `src/services/thermal_safety_service.h/.cpp`。
+  - ThermalSafetyService 不包含 `Arduino.h`，不直接操作 GPIO。
+  - 提供 `ThermalSafety_CheckCanPrint()`、`ThermalSafety_CalcPulseUs()`、`ThermalSafety_CheckLine()`。
+  - 安全检查覆盖缺纸、温度无效、过温、低电压、单组黑点数和热脉冲硬上限。
+  - 初始脉冲算法使用参数中的起步脉冲和最大脉冲，并按温度、电压做保守修正。
+  - 当前低电压阈值使用服务内保守占位 `6500mV`，后续应迁移到 `SafetyParams` 并提升参数版本。
+  - 函数只返回 `AppErrorCode` 或计算结果，不直接进入 SAFE_MODE。
+  - 已在代码注释中写入手工自检用例。
+  - 使用 `python -m platformio run` 编译通过。
+  - 已按要求创建 git commit。
+- 下一步建议：
+  - 下一步适合建立 PrintCtrlTask，把 `qLineReady`、SensorSnapshot、ParamBlock 和 ThermalSafetyService 串起来，但继续先不调用真实打印头驱动。
