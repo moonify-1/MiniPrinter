@@ -391,3 +391,16 @@
   - `python tools/send_frame.py --help` 和 `python tools/make_test_print.py --help` 正常运行。
 - 下一步建议：
   - 下一步适合接入真实串口执行 `ping/status/safe-off/sensor-test`，再进入 GPIO 波形和传感器真实读取验证。
+
+## Step 24
+
+- 时间：2026-04-26 18:32:41
+- 状态：已完成
+- 结果：
+  - 新增 `docs/创建项目情况.md`，按当前源码列出项目已经实现的打印机功能。
+  - 文档明确区分了软件闭环、mock 驱动、受宏保护的真实硬件骨架和仍未完成的真实打印验证。
+  - 同步更新 `docs/项目结构.md`，把 `docs/创建项目情况.md` 加入正式项目结构。
+  - 使用 `python -m platformio run` 编译通过。
+  - 使用 `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1"` 额外编译通过。
+- 下一步建议：
+  - 下一步适合接入真实串口执行 `ping/status/safe-off/sensor-test`，确认协议收发和安全关闭命令，再进入 GPIO 波形验证。
