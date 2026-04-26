@@ -14,6 +14,7 @@
 #include "app/app_system.h"
 #include "common/app_error.h"
 #include "config/safety_limits.h"
+#include "protocol/proto_frame.h"
 #include "rtos/rtos_objects.h"
 #include "services/error_service.h"
 #include "services/health_service.h"
@@ -377,8 +378,14 @@ String ParamJson(const mp::ParamBlock& params) {
   json += params.safety.forbidHeatWhenPaperMissing;
   json += ",\"forbid_heat_low_voltage\":";
   json += params.safety.forbidHeatWhenLowVoltage;
+  json += ",\"forbid_fast_motor_low_voltage\":";
+  json += params.safety.forbidFastMotorWhenLowVoltage;
   json += "},\"comm\":{\"max_frame_length\":";
   json += params.comm.maxFrameLength;
+  json += ",\"inter_byte_timeout_ms\":";
+  json += params.comm.interByteTimeout;
+  json += ",\"enable_crc\":";
+  json += params.comm.enableCrc;
   json += "}}";
   return json;
 }
@@ -798,6 +805,22 @@ bool ApplyU16Arg(const char* name, std::uint16_t minValue,
   return true;
 }
 
+bool ApplyU8Arg(const char* name, std::uint8_t minValue,
+                std::uint8_t maxValue, std::uint8_t* field) {
+  if (!g_server.hasArg(name)) {
+    return true;
+  }
+
+  std::uint32_t value = 0U;
+  if (!ParseU32Text(g_server.arg(name), &value) || value < minValue ||
+      value > maxValue || field == nullptr) {
+    return false;
+  }
+
+  *field = static_cast<std::uint8_t>(value);
+  return true;
+}
+
 bool ApplyI16Arg(const char* name, std::int16_t minValue,
                  std::int16_t maxValue, std::int16_t* field) {
   if (!g_server.hasArg(name)) {
@@ -820,6 +843,25 @@ bool ApplyI16Arg(const char* name, std::int16_t minValue,
   return true;
 }
 
+bool IsKnownParamArg(const String& name) {
+  return name == "max_heat_dots" || name == "temp_stop_c" ||
+         name == "temp_resume_c" || name == "heat_start_us" ||
+         name == "heat_max_us" || name == "forbid_heat_paper_missing" ||
+         name == "forbid_heat_low_voltage" ||
+         name == "forbid_fast_motor_low_voltage" ||
+         name == "steps_per_line" || name == "start_interval_us" ||
+         name == "run_interval_us" || name == "fast_interval_us" ||
+         name == "max_frame_length";
+}
+
+const char* ParamPatchAllowListText() {
+  return "allowed params: max_heat_dots, temp_stop_c, temp_resume_c, "
+         "heat_start_us, heat_max_us, forbid_heat_paper_missing, "
+         "forbid_heat_low_voltage, forbid_fast_motor_low_voltage, "
+         "steps_per_line, start_interval_us, run_interval_us, "
+         "fast_interval_us, max_frame_length";
+}
+
 void HandleParamsGet() {
   String json = JsonHeader(true, "OK", "params");
   json += ",\"params\":";
@@ -831,6 +873,14 @@ void HandleParamsGet() {
 void HandleParamsPatch() {
   if (!RequireNotSafeMode("parameter changes are blocked in SAFE_MODE")) {
     return;
+  }
+
+  for (int index = 0; index < g_server.args(); ++index) {
+    if (!IsKnownParamArg(g_server.argName(index))) {
+      SendErrorJson(400, "PARAM_NOT_ALLOWED",
+                    ParamPatchAllowListText(), mp::ERR_PARAM_CRC);
+      return;
+    }
   }
 
   mp::ParamBlock params = mp::Param_GetSnapshot();
@@ -846,13 +896,30 @@ void HandleParamsPatch() {
   ok = ApplyU16Arg("heat_max_us", params.safety.heatPulseStartUs,
                    mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US,
                    &params.safety.heatPulseMaxUs) && ok;
+  ok = ApplyU8Arg("forbid_heat_paper_missing", 0U, 1U,
+                  &params.safety.forbidHeatWhenPaperMissing) && ok;
+  ok = ApplyU8Arg("forbid_heat_low_voltage", 0U, 1U,
+                  &params.safety.forbidHeatWhenLowVoltage) && ok;
+  ok = ApplyU8Arg("forbid_fast_motor_low_voltage", 0U, 1U,
+                  &params.safety.forbidFastMotorWhenLowVoltage) && ok;
+  ok = ApplyU8Arg("steps_per_line", 1U, 8U,
+                  &params.motor.stepsPerPrintLine) && ok;
+  ok = ApplyU16Arg("start_interval_us", 1000U, 20000U,
+                   &params.motor.startPhaseIntervalUs) && ok;
+  ok = ApplyU16Arg("run_interval_us", 1000U, 20000U,
+                   &params.motor.runPhaseIntervalUs) && ok;
+  ok = ApplyU16Arg("fast_interval_us", 1000U, 20000U,
+                   &params.motor.fastPhaseIntervalUs) && ok;
+  ok = ApplyU16Arg("max_frame_length", 64U, mp::PROTO_MAX_FRAME_SIZE,
+                   &params.comm.maxFrameLength) && ok;
   ok = ok &&
        params.safety.tempResumeThresholdC < params.safety.tempStopThresholdC;
+  ok = ok && params.safety.heatPulseStartUs <= params.safety.heatPulseMaxUs;
+  ok = ok && params.motor.fastPhaseIntervalUs <= params.motor.runPhaseIntervalUs;
+  ok = ok && params.motor.runPhaseIntervalUs <= params.motor.startPhaseIntervalUs;
 
   if (!ok) {
-    SendErrorJson(400, "PARAM_OUT_OF_RANGE",
-                  "allowed params: max_heat_dots, temp_stop_c, "
-                  "temp_resume_c, heat_start_us, heat_max_us",
+    SendErrorJson(400, "PARAM_OUT_OF_RANGE", ParamPatchAllowListText(),
                   mp::ERR_PARAM_CRC);
     return;
   }

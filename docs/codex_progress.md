@@ -680,3 +680,21 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_STEPPER=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 13，补齐参数 API 白名单和校验。
+
+## Step 42
+
+- 时间：2026-04-26 22:08:29
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 13：完善参数 API 和参数校验
+- 结果：
+  - `PATCH /api/v1/params` 改为严格白名单，未知查询参数返回 `PARAM_NOT_ALLOWED`。
+  - 参数修改先写入临时副本，全部校验通过后才调用 `Param_Update()`。
+  - 白名单扩展到热安全、低电压保护开关、电机走纸节奏和 `max_frame_length`。
+  - 增加组合约束：`temp_resume_c < temp_stop_c`、`heat_start_us <= heat_max_us`、`fast <= run <= start`。
+  - `GET /api/v1/params` 返回更完整的 safety/comm 字段。
+  - 新增 `docs/参数API.md` 记录允许字段、范围、调用方式和错误策略。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 14，补 WiFi API 主机侧测试脚本。
