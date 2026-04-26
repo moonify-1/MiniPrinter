@@ -645,3 +645,19 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 11，实现按键输入状态读取与 WiFi API 展示。
+
+## Step 40
+
+- 时间：2026-04-26 21:58:47
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 11：实现按键输入服务
+- 结果：
+  - 新增 `KeyService`，周期读取 `G_KEY`，支持 40ms 去抖、短按和长按事件记录。
+  - `TaskSensor` 复用现有 50ms 周期轮询按键，不新增 FreeRTOS 任务。
+  - 新增 `GET /api/v1/key`，并在 `GET /api/v1/status` 中加入 `key` 字段。
+  - 当前按 `INPUT_PULLUP`、低有效假设处理，API 返回 `active_low_assumed=true`。
+  - 新增 `docs/按键输入服务.md`，并在 `docs/需要补充的信息.md` 记录 `G_KEY` 实测项。
+- 验证：
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 12，完善电池状态与低电压策略展示。

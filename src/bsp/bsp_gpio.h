@@ -17,6 +17,13 @@ bool Bsp_IsValidPin(int pin);
 // 2. 已分配引脚在被当作输出使用前，尽快进入一个明确的安全状态。
 void Bsp_PinModeOutputSafe(int pin, int defaultLevel);
 
+// 把一个引脚配置成上拉输入。
+//
+// 适合按键、故障脚这类“默认高电平、按下或故障时拉低”的输入。
+// 如果后续实测发现某个网络不是低有效，应在对应 service 层调整解释规则，
+// 而不是让业务代码直接散落 pinMode() 调用。
+void Bsp_PinModeInputPullupIfValid(int pin);
+
 // 只有在引脚有效时才写出电平。
 //
 // 这样上层代码就不需要在每次写 GPIO 之前都重复判断 pin 是否已分配。

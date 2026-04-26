@@ -17,6 +17,7 @@
 #include "rtos/rtos_objects.h"
 #include "services/error_service.h"
 #include "services/health_service.h"
+#include "services/key_service.h"
 #include "services/log_service.h"
 #include "services/param_service.h"
 #include "services/print_file_service.h"
@@ -126,6 +127,19 @@ const char* TaskIdText(mp::TaskId id) {
       return "WIFI_API";
     case mp::TaskId::METRICS:
       return "METRICS";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+const char* KeyEventText(mp::KeyEvent event) {
+  switch (event) {
+    case mp::KeyEvent::NONE:
+      return "NONE";
+    case mp::KeyEvent::SHORT_PRESS:
+      return "SHORT_PRESS";
+    case mp::KeyEvent::LONG_PRESS:
+      return "LONG_PRESS";
     default:
       return "UNKNOWN";
   }
@@ -270,6 +284,24 @@ String SensorSnapshotJson(const mp::SensorSnapshot& sensor) {
   return json;
 }
 
+String KeyJson(const mp::KeySnapshot& key) {
+  String json = "{";
+  json += "\"raw_level_high\":";
+  json += key.rawLevelHigh ? "true" : "false";
+  json += ",\"pressed\":";
+  json += key.pressed ? "true" : "false";
+  json += ",\"active_low_assumed\":";
+  json += key.activeLowAssumed ? "true" : "false";
+  json += ",\"last_event\":\"";
+  json += KeyEventText(key.lastEvent);
+  json += "\",\"last_event_tick_ms\":";
+  json += key.lastEventTickMs;
+  json += ",\"press_duration_ms\":";
+  json += key.pressDurationMs;
+  json += "}";
+  return json;
+}
+
 String ErrorEventJson(const mp::ErrorEvent& error) {
   String json = "{";
   json += "\"code\":";
@@ -385,6 +417,7 @@ void HandleInfo() {
 
 void HandleStatus() {
   const mp::SensorSnapshot sensor = mp::SensorService_GetSnapshot();
+  const mp::KeySnapshot key = mp::KeyService_GetSnapshot();
   const mp::PrintAppSnapshot print = mp::PrintApp_GetSnapshot();
   const mp::ErrorEvent error = mp::Error_GetLast();
 
@@ -406,6 +439,8 @@ void HandleStatus() {
   json += "\"summary\":true";
   json += SensorJsonFields(sensor);
   json += "}";
+  json += ",\"key\":";
+  json += KeyJson(key);
   json += ",\"error\":{\"code\":";
   json += error.code;
   json += ",\"severity\":\"";
@@ -413,6 +448,14 @@ void HandleStatus() {
   json += "\",\"safe_mode\":";
   json += mp::Error_IsSafeModeRequired() ? "true" : "false";
   json += "}}";
+  SendJson(200, json);
+}
+
+void HandleKey() {
+  String json = JsonHeader(true, "OK", "key");
+  json += ",\"key\":";
+  json += KeyJson(mp::KeyService_GetSnapshot());
+  json += "}";
   SendJson(200, json);
 }
 
@@ -1095,6 +1138,7 @@ void ConnectWifi() {
 void RegisterRoutes() {
   g_server.on("/api/v1/info", HTTP_GET, HandleInfo);
   g_server.on("/api/v1/status", HTTP_GET, HandleStatus);
+  g_server.on("/api/v1/key", HTTP_GET, HandleKey);
   g_server.on("/api/v1/sensors", HTTP_GET, HandleSensors);
   g_server.on("/api/v1/battery", HTTP_GET, HandleBattery);
   g_server.on("/api/v1/error", HTTP_GET, HandleErrorGet);

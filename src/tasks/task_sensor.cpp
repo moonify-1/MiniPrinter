@@ -5,6 +5,7 @@
 
 #include "rtos/task_registry.h"
 #include "services/health_service.h"
+#include "services/key_service.h"
 #include "services/log_service.h"
 #include "services/sensor_service.h"
 
@@ -26,6 +27,7 @@ void TaskSensorMain(void* /*context*/) {
                    xTaskGetCurrentTaskHandle());
   mp::Health_ReportHeartbeat(mp::TaskId::SENSOR);
   mp::SensorService_Init();
+  mp::KeyService_Init();
   mp::Log_Info("sensor", "SensorTask alive");
 
   TickType_t lastWakeTick = xTaskGetTickCount();
@@ -34,6 +36,7 @@ void TaskSensorMain(void* /*context*/) {
     vTaskDelayUntil(&lastWakeTick, kSensorPeriodTicks);
     mp::Health_ReportHeartbeat(mp::TaskId::SENSOR);
     (void)mp::SensorService_Poll();
+    mp::KeyService_Poll();
   }
 }
 

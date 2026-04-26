@@ -29,6 +29,14 @@ void Bsp_PinModeOutputSafe(int pin, int defaultLevel) {
   digitalWrite(pin, NormalizeLevel(defaultLevel));
 }
 
+void Bsp_PinModeInputPullupIfValid(int pin) {
+  if (!Bsp_IsValidPin(pin)) {
+    return;
+  }
+
+  pinMode(pin, INPUT_PULLUP);
+}
+
 void Bsp_WritePinIfValid(int pin, int level) {
   if (!Bsp_IsValidPin(pin)) {
     return;
