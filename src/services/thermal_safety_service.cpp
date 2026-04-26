@@ -12,27 +12,125 @@ namespace {
 // 同时提升 PARAM_BLOCK_VERSION，避免 NVS 中旧参数结构被误读。
 constexpr std::uint32_t kDefaultLowBatteryStopMv = 6500U;
 
-// 温度补偿门槛。
+// JX-2R-01 规格书给出的参考工作点。
 //
-// 当前只是初始算法：
-// - 温度越接近停机阈值，脉冲越短。
-// - 这不是最终热模型，必须通过真实打印效果和温升曲线校准。
-constexpr float kWarmTempReduceMarginC = 10.0F;
-constexpr std::uint16_t kWarmTempReduceUs = 50U;
-constexpr std::uint16_t kLowVoltageBoostUs = 50U;
+// VH 是热敏头加热电源，不是 ESP32 的 3.3V 逻辑电源。
+// 规格书中 25C、VH=7.2V、64 dots 同时加热时，典型 Ton 约 0.49ms。
+// 这里把它作为“未实测前的保守参考点”，后续真实灰度和温升要再校准。
+constexpr std::uint32_t kNominalVhMv = 7200U;
+constexpr std::uint16_t kTypicalTon25C64DotsUs = 490U;
+constexpr std::int16_t kNominalTempC = 25;
 
-std::uint16_t ClampPulseToLimits(std::uint32_t pulseUs,
-                                 const mp::ParamBlock& params) {
+// 低电压保护的上方只允许很小范围的电压补偿。
+//
+// 热敏头每个点近似是电阻负载，功率 P 约等于 V^2 / R。
+// 为了保持相近能量，脉宽可按 (额定电压 / 当前电压)^2 缩放。
+// 这只是第一阶段模型：没有补偿线阻、MOS 压降和真实 VH_OUT 纹波。
+constexpr std::uint32_t kVoltageCompMaxMv = 8400U;
+
+// 行周期约束。
+//
+// 一行最多 6 个 STB 组。若每组都给 490us，总加热时间约 2940us。
+// 因此第一阶段把整行加热预算设为 3000us，折算每个 STB 组最多 500us。
+// 这样即使 6 组都满黑，也不会把加热阶段拉得过长。
+constexpr std::uint16_t kLineHeatBudgetUs = 3000U;
+constexpr std::uint16_t kPerStbHeatBudgetUs =
+    kLineHeatBudgetUs / mp::PRINT_STB_GROUP_COUNT;
+
+// 温度补偿斜率。
+//
+// 头温高于 25C 时减少脉宽，避免温升叠加；低于 25C 时允许很小的补偿，
+// 但仍受最大脉宽和行周期双重限制。
+constexpr std::uint16_t kWarmReduceUsPer10C = 40U;
+constexpr std::uint16_t kColdBoostUsPer10C = 20U;
+constexpr std::uint16_t kColdBoostMaxUs = 80U;
+
+std::uint16_t MaxAllowedPulseUs(const mp::ParamBlock& params) {
   std::uint32_t maxUs = params.safety.heatPulseMaxUs;
+  if (maxUs == 0U) {
+    maxUs = mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US;
+  }
+
   if (maxUs > mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US) {
     maxUs = mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US;
   }
 
+  if (maxUs > kPerStbHeatBudgetUs) {
+    maxUs = kPerStbHeatBudgetUs;
+  }
+
+  return static_cast<std::uint16_t>(maxUs);
+}
+
+std::uint16_t ClampPulseToLimits(std::uint32_t pulseUs,
+                                 const mp::ParamBlock& params) {
+  const std::uint16_t maxUs = MaxAllowedPulseUs(params);
   if (pulseUs > maxUs) {
-    return static_cast<std::uint16_t>(maxUs);
+    return maxUs;
   }
 
   return static_cast<std::uint16_t>(pulseUs);
+}
+
+std::uint32_t ApplyDotLoadModel(std::uint32_t startPulseUs,
+                                std::uint8_t groupBlackDots) {
+  if (groupBlackDots == 0U) {
+    return 0U;
+  }
+
+  // heatPulseStartUs 是“低密度起始脉宽”。
+  // 64 dots 同时加热时电源负载最大，因此把脉宽平滑推向规格书典型 490us。
+  // 这样 1 个黑点不会被不必要地拉到 490us，64 个黑点也有明确上限参考。
+  if (startPulseUs >= kTypicalTon25C64DotsUs) {
+    return startPulseUs;
+  }
+
+  const std::uint32_t extraAtFullLoad =
+      static_cast<std::uint32_t>(kTypicalTon25C64DotsUs) - startPulseUs;
+  return startPulseUs +
+         ((extraAtFullLoad * groupBlackDots) /
+          mp::SAFETY_MAX_SIMULTANEOUS_HEAT_DOTS);
+}
+
+std::uint32_t ApplyTempModel(std::uint32_t pulseUs, float headTempC) {
+  if (headTempC > static_cast<float>(kNominalTempC)) {
+    const float deltaC = headTempC - static_cast<float>(kNominalTempC);
+    const std::uint32_t reduceUs = static_cast<std::uint32_t>(
+        (deltaC * static_cast<float>(kWarmReduceUsPer10C)) / 10.0F);
+    return (pulseUs > reduceUs) ? (pulseUs - reduceUs) : 1U;
+  }
+
+  const float deltaC = static_cast<float>(kNominalTempC) - headTempC;
+  std::uint32_t boostUs = static_cast<std::uint32_t>(
+      (deltaC * static_cast<float>(kColdBoostUsPer10C)) / 10.0F);
+  if (boostUs > kColdBoostMaxUs) {
+    boostUs = kColdBoostMaxUs;
+  }
+
+  return pulseUs + boostUs;
+}
+
+std::uint32_t ApplyVoltageModel(std::uint32_t pulseUs,
+                                std::uint32_t batteryMv) {
+  if (batteryMv == 0U) {
+    return pulseUs;
+  }
+
+  std::uint32_t vhMv = batteryMv;
+  if (vhMv < kDefaultLowBatteryStopMv) {
+    vhMv = kDefaultLowBatteryStopMv;
+  }
+  if (vhMv > kVoltageCompMaxMv) {
+    vhMv = kVoltageCompMaxMv;
+  }
+
+  const std::uint64_t numerator =
+      static_cast<std::uint64_t>(pulseUs) * kNominalVhMv * kNominalVhMv;
+  const std::uint64_t denominator =
+      static_cast<std::uint64_t>(vhMv) * vhMv;
+
+  return static_cast<std::uint32_t>((numerator + denominator - 1U) /
+                                    denominator);
 }
 
 std::uint8_t CountBits(std::uint8_t value) {
@@ -123,21 +221,14 @@ ThermalPulseResult ThermalSafety_CalcPulseUs(
     return result;
   }
 
-  std::uint32_t pulseUs = params.safety.heatPulseStartUs;
+  const std::uint32_t startPulseUs =
+      (params.safety.heatPulseStartUs == 0U)
+          ? mp::SAFETY_DEFAULT_HEAT_PULSE_START_US
+          : params.safety.heatPulseStartUs;
 
-  const float warmTempC =
-      static_cast<float>(params.safety.tempStopThresholdC) -
-      kWarmTempReduceMarginC;
-  if (sensorSnapshot.headTempC >= warmTempC &&
-      pulseUs > kWarmTempReduceUs) {
-    pulseUs -= kWarmTempReduceUs;
-  }
-
-  // 电压偏低但还没到停机阈值时，先轻微增加脉冲。
-  // 这个补偿只用于骨架验证，后续必须实测校准，否则可能影响打印效果和温升。
-  if (sensorSnapshot.batteryMv < (kDefaultLowBatteryStopMv + 500U)) {
-    pulseUs += kLowVoltageBoostUs;
-  }
+  std::uint32_t pulseUs = ApplyDotLoadModel(startPulseUs, groupBlackDots);
+  pulseUs = ApplyTempModel(pulseUs, sensorSnapshot.headTempC);
+  pulseUs = ApplyVoltageModel(pulseUs, sensorSnapshot.batteryMv);
 
   result.pulseUs = ClampPulseToLimits(pulseUs, params);
   return result;
@@ -165,5 +256,7 @@ AppErrorCode ThermalSafety_CheckLine(const LineBuffer* line) {
 // 4. batteryMv < 6500，应返回 ERR_POWER_LOW_BATTERY。
 // 5. groupBlackDots=0 时 pulseUs 应为 0。
 // 6. groupBlackDots=65 时应拒绝加热。
+// 7. 25C、7200mV、64 dots、默认参数时，pulseUs 应接近 490us。
+// 8. 所有结果都必须同时受 heatPulseMaxUs、800us 硬上限和 500us/组行预算限制。
 
 }  // namespace mp

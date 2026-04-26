@@ -628,3 +628,20 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_STEPPER=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 10，按规格书完善保守热敏头热模型。
+
+## Step 39
+
+- 时间：2026-04-26 21:53:40
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 10：按规格书完善热敏头热模型
+- 结果：
+  - `ThermalSafety_CalcPulseUs()` 改为可解释的保守热模型。
+  - 保留单组最大 `64 dots` 同时加热限制。
+  - 新增 `VH=7200mV`、25C 满载典型 `Ton=490us`、3000us 行加热预算、500us/组预算等明确常量。
+  - 脉宽计算按黑点负载、温度、电压依次补偿，最终仍受参数上限和固件硬上限限制。
+  - 新增 `docs/热敏头热模型.md`，说明模型公式、常量和仍需用户实测的项目。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 11，实现按键输入状态读取与 WiFi API 展示。
