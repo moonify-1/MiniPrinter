@@ -951,6 +951,34 @@ void HandleFactoryHeadStbTest() {
   SendJson(200, json);
 }
 
+void HandleFactoryMotorTest() {
+  if (!RequireNotSafeMode("motor test is blocked in SAFE_MODE")) {
+    return;
+  }
+
+  std::uint32_t steps = 1U;
+  if (!ParseOptionalU32Arg("steps", 1U, &steps) || steps == 0U ||
+      steps > 200U) {
+    SendErrorJson(400, "PARAM_OUT_OF_RANGE",
+                  "steps must be in 1..200", mp::ERR_COMM_FRAME_TOO_LONG);
+    return;
+  }
+
+  const mp::AppErrorCode result = mp::FactoryTest_MotorTest(steps);
+  if (result != mp::APP_OK) {
+    SendErrorJson(400, "MOTOR_TEST_FAILED",
+                  "hardware macro is required and nFAULT must stay inactive",
+                  result);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "motor test done and released");
+  json += ",\"steps\":";
+  json += steps;
+  json += "}";
+  SendJson(200, json);
+}
+
 void HandleSafeOff() {
   const mp::AppErrorCode result = mp::FactoryTest_SafeOff();
   if (result != mp::APP_OK) {
@@ -1081,6 +1109,8 @@ void RegisterRoutes() {
   g_server.on("/api/v1/print/jobs/current/cancel", HTTP_POST,
               HandlePrintJobCancel);
   g_server.on("/api/v1/feed", HTTP_POST, HandleFeed);
+  g_server.on("/api/v1/factory/motor-test", HTTP_POST,
+              HandleFactoryMotorTest);
   g_server.on("/api/v1/factory/head-shift-test", HTTP_POST,
               HandleFactoryHeadShiftTest);
   g_server.on("/api/v1/factory/head-stb-test", HTTP_POST,

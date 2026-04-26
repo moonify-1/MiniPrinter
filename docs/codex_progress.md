@@ -593,3 +593,20 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 08，接入真实步进电机低速测试 WiFi API。
+
+## Step 37
+
+- 时间：2026-04-26 21:34:32
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 08：接入真实步进电机低速测试
+- 结果：
+  - 新增 `POST /api/v1/factory/motor-test?steps=<n>`，限制 `steps=1..200`。
+  - API 复用 `FactoryTest_MotorTest()`，真实电机动作仍受 `MP_ENABLE_HW_STEPPER=1` 控制。
+  - 默认硬件宏关闭时不动作，返回结构化 JSON 错误。
+  - `SAFE_MODE` 下禁止 motor-test。
+  - 更新 `docs/需要补充的信息.md`，保留真实走纸方向和相序待用户低速实测确认。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_STEPPER=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 09，把走纸节奏从占位推进到 2 步/行的可解释模型。
