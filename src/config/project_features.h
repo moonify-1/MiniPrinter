@@ -20,6 +20,10 @@
 #define MP_ENABLE_HW_STEPPER 0
 #endif
 
+#ifndef MP_ENABLE_HW_SENSORS
+#define MP_ENABLE_HW_SENSORS 0
+#endif
+
 #ifndef MP_ENABLE_WDT
 #define MP_ENABLE_WDT 0
 #endif
@@ -58,6 +62,7 @@ namespace mp {
 // 这样普通 C++ 代码就可以用类型安全的方式读取功能开关。
 constexpr bool FEATURE_HW_THERMAL_HEAD = (MP_ENABLE_HW_THERMAL_HEAD != 0);
 constexpr bool FEATURE_HW_STEPPER = (MP_ENABLE_HW_STEPPER != 0);
+constexpr bool FEATURE_HW_SENSORS = (MP_ENABLE_HW_SENSORS != 0);
 constexpr bool FEATURE_WDT = (MP_ENABLE_WDT != 0);
 constexpr bool FEATURE_WIFI = (MP_ENABLE_WIFI != 0);
 constexpr bool FEATURE_BLE = (MP_ENABLE_BLE != 0);

@@ -557,3 +557,23 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 06，加入真实传感器驱动骨架，优先接入 EQD 和 G_NFAULT。
+
+## Step 35
+
+- 时间：2026-04-26 21:34:32
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 06：实现真实传感器驱动骨架
+- 结果：
+  - `src/config/project_features.h` 新增 `MP_ENABLE_HW_SENSORS`，默认 `0`。
+  - 新增 `src/drivers/sensors/drv_sensors_esp32.cpp`，仅在 `MP_ENABLE_HW_SENSORS=1` 时接管 `GetSensorDriver()`。
+  - `EQD` 按 220k/100k 分压约 3.2 倍换算 `batteryMv`，保留 ADC 校准 TODO。
+  - `G_NFAULT` 按低有效读取 `motorFault`。
+  - `PAPER_N` 第一阶段按用户要求固定返回 `paperPresent=true`，代码中保留 TODO。
+  - `TM1` 第一阶段返回保守室温占位，不宣称真实温度保护已完成，代码中保留 TODO。
+  - `BAT_STAT` 在 IP2326 语义确认前返回 `UNKNOWN`，不猜测充电状态。
+  - `GET /api/v1/info` 增加 `hw_sensors` 功能开关展示。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_SENSORS=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 07，准备 WiFi 工厂测试 API 和空载波形验证文档。

@@ -1,5 +1,7 @@
 #include "drivers/sensors/drv_sensor_types.h"
 
+#include "config/project_features.h"
+
 namespace {
 
 constexpr mp::SensorMockConfig kDefaultSensorMockConfig = {
@@ -62,7 +64,9 @@ MockSensorDriver g_mockSensorDriver;
 
 namespace mp {
 
+#if !MP_ENABLE_HW_SENSORS
 SensorDriver& GetSensorDriver() { return g_mockSensorDriver; }
+#endif
 
 const SensorMockConfig& SensorMock_GetConfig() {
   return g_mockSensorDriver.config();

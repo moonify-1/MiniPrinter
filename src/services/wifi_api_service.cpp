@@ -367,6 +367,8 @@ void HandleInfo() {
   json += mp::FEATURE_HW_THERMAL_HEAD ? "true" : "false";
   json += ",\"hw_stepper\":";
   json += mp::FEATURE_HW_STEPPER ? "true" : "false";
+  json += ",\"hw_sensors\":";
+  json += mp::FEATURE_HW_SENSORS ? "true" : "false";
   json += ",\"wdt\":";
   json += mp::FEATURE_WDT ? "true" : "false";
   json += "}}";
