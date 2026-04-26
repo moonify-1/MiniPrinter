@@ -577,3 +577,19 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_SENSORS=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 07，准备 WiFi 工厂测试 API 和空载波形验证文档。
+
+## Step 36
+
+- 时间：2026-04-26 21:34:32
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 07：验证安全输出和 GPIO 空载波形
+- 结果：
+  - 新增 `POST /api/v1/factory/head-shift-test`，请求体必须是 48 字节 raw，只执行 shift/latch，保持 VH 关闭。
+  - 新增 `POST /api/v1/factory/head-stb-test`，按 `group` 和 `pulse_us` 触发单组 STB 空载脉冲，底层仍由 `FactoryTest_HeadStbTest()` 保证 VH 关闭。
+  - 新增 `docs/硬件空载波形验证.md`，列出 safe-off、DI/CLK/LAT、STB1~STB6、G_VH 的测点、期望和用户实测记录表。
+  - 文档明确：未验证前不得接入真实加热打印。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 08，接入真实步进电机低速测试 WiFi API。

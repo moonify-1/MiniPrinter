@@ -896,6 +896,61 @@ void HandleLogsRecent() {
   SendJson(200, json);
 }
 
+void HandleFactoryHeadShiftTest() {
+  if (!RequireNotSafeMode("head shift test is blocked in SAFE_MODE")) {
+    return;
+  }
+
+  const String body = g_server.arg("plain");
+  const mp::AppErrorCode result = mp::FactoryTest_HeadShiftTest(
+      reinterpret_cast<const std::uint8_t*>(body.c_str()),
+      static_cast<std::size_t>(body.length()));
+  if (result != mp::APP_OK) {
+    SendErrorJson(400, "HEAD_SHIFT_TEST_FAILED",
+                  "body must be exactly 48 raw bytes; hardware macro required",
+                  result);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "head shift test done with VH off");
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleFactoryHeadStbTest() {
+  if (!RequireNotSafeMode("head stb test is blocked in SAFE_MODE")) {
+    return;
+  }
+
+  std::uint32_t group = 0U;
+  std::uint32_t pulseUs = 5U;
+  if (!g_server.hasArg("group") ||
+      !ParseU32Text(g_server.arg("group"), &group) ||
+      !ParseOptionalU32Arg("pulse_us", 5U, &pulseUs) ||
+      group >= mp::PRINT_STB_GROUP_COUNT) {
+    SendErrorJson(400, "BAD_REQUEST",
+                  "group must be 0..5 and pulse_us must be numeric",
+                  mp::ERR_COMM_FRAME_TOO_LONG);
+    return;
+  }
+
+  const mp::AppErrorCode result =
+      mp::FactoryTest_HeadStbTest(static_cast<std::uint8_t>(group), pulseUs);
+  if (result != mp::APP_OK) {
+    SendErrorJson(400, "HEAD_STB_TEST_FAILED",
+                  "hardware macro and safety conditions are required", result);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "head stb test done with VH off");
+  json += ",\"group\":";
+  json += group;
+  json += ",\"pulse_us\":";
+  json += pulseUs;
+  json += "}";
+  SendJson(200, json);
+}
+
 void HandleSafeOff() {
   const mp::AppErrorCode result = mp::FactoryTest_SafeOff();
   if (result != mp::APP_OK) {
@@ -1026,6 +1081,10 @@ void RegisterRoutes() {
   g_server.on("/api/v1/print/jobs/current/cancel", HTTP_POST,
               HandlePrintJobCancel);
   g_server.on("/api/v1/feed", HTTP_POST, HandleFeed);
+  g_server.on("/api/v1/factory/head-shift-test", HTTP_POST,
+              HandleFactoryHeadShiftTest);
+  g_server.on("/api/v1/factory/head-stb-test", HTTP_POST,
+              HandleFactoryHeadStbTest);
   g_server.onNotFound(HandleNotFound);
 }
 

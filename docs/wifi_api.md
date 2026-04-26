@@ -62,6 +62,8 @@
 | `GET /api/v1/print/jobs/current` | 查询当前打印任务状态。 |
 | `POST /api/v1/print/jobs/current/cancel` | 取消当前打印任务。 |
 | `POST /api/v1/feed?steps=<n>` | 走纸请求，当前限制 `1..200` 步。 |
+| `POST /api/v1/factory/head-shift-test` | 请求体 48 字节 raw，只做 shift/latch，保持 VH 关闭。 |
+| `POST /api/v1/factory/head-stb-test?group=<0..5>&pulse_us=<n>` | VH 关闭条件下输出单组 STB 空载测试脉冲。 |
 
 ## 4. 打印文件上传限制
 
