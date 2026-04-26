@@ -13,6 +13,7 @@
 #include "services/error_service.h"
 #include "services/log_service.h"
 #include "services/param_service.h"
+#include "services/sensor_service.h"
 #include "services/thermal_safety_service.h"
 
 namespace {
@@ -78,6 +79,16 @@ AppErrorCode FactoryTest_MotorTest(std::uint32_t steps) {
            static_cast<unsigned long>(limitedSteps));
 
 #if MP_ENABLE_HW_STEPPER
+  const SensorSnapshot sensor = SensorService_GetSnapshot();
+  const ParamBlock params = Param_GetSnapshot();
+  if (params.safety.forbidFastMotorWhenLowVoltage != 0U &&
+      sensor.batteryMv < SAFETY_DEFAULT_LOW_BATTERY_STOP_MV) {
+    return ERR_POWER_LOW_BATTERY;
+  }
+  if (sensor.motorFault) {
+    return ERR_MOTOR_FAULT;
+  }
+
   StepperDriver& stepper = GetStepperDriver();
   if (!stepper.init()) {
     stepper.setSafe();

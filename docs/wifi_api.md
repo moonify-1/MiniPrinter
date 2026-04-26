@@ -40,8 +40,8 @@
 | `GET /api/v1/info` | 返回设备名、API 前缀和功能开关。 |
 | `GET /api/v1/status` | 返回系统状态、打印状态、传感器摘要和最近错误摘要。 |
 | `GET /api/v1/key` | 返回 `G_KEY` 原始电平、当前按下状态和最近短按/长按事件。 |
-| `GET /api/v1/sensors` | 返回 paper、head_temp_c、battery_mv、charging、motor_fault、validity。 |
-| `GET /api/v1/battery` | 返回 battery_mv、charging、low_power 和读数有效性。 |
+| `GET /api/v1/sensors` | 返回 paper、head_temp_c、battery_mv、charge_status、charging、motor_fault、validity。 |
+| `GET /api/v1/battery` | 返回 battery_mv、battery_ok、low_power、low_voltage_stop_mv、charge_status 和读数有效性。 |
 | `GET /api/v1/error` | 返回最近错误事件。 |
 | `POST /api/v1/error/clear` | 清除可恢复错误。 |
 | `GET /api/v1/params` | 返回当前参数快照。 |
@@ -85,3 +85,4 @@
 - `POST /api/v1/print/jobs` 第一阶段只支持 `copies=1`，`density` 和 `heat` 可传 `0..100` 做范围校验，但还不会直接改写持久化参数。
 - `PATCH /api/v1/params` 第一阶段只开放：`max_heat_dots`、`temp_stop_c`、`temp_resume_c`、`heat_start_us`、`heat_max_us`。
 - `G_KEY` 当前按低有效假设展示，未实测确认前不绑定危险动作。
+- `BAT_STAT` 当前返回 `UNKNOWN`，未确认 IP2326 数据手册和实测电平前不猜测充电状态。

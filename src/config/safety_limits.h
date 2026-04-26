@@ -14,6 +14,12 @@ constexpr std::int16_t SAFETY_DEFAULT_TEMP_RESUME_THRESHOLD_C = 50;
 constexpr std::uint16_t SAFETY_DEFAULT_HEAT_PULSE_MAX_US = 800U;
 constexpr std::uint16_t SAFETY_DEFAULT_HEAT_PULSE_START_US = 400U;
 
+// 2S 锂电低电压保守停机线。
+//
+// 当前硬件通过 EQD 采样 2S+，第一阶段用 6500mV 作为危险动作限制线。
+// 后续如果实测电池、升压和打印浓度后需要调整，应迁移到 ParamBlock。
+constexpr std::uint32_t SAFETY_DEFAULT_LOW_BATTERY_STOP_MV = 6500U;
+
 // 这里故意使用 0/1 的固定宽度整数，
 // 是为了让它们后续可以稳定地进入参数结构体和 CRC 计算。
 constexpr std::uint8_t SAFETY_FORBID_HEAT_WHEN_PAPER_MISSING = 1U;

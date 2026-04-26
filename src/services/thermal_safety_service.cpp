@@ -5,13 +5,6 @@
 
 namespace {
 
-// 当前 ParamBlock 尚未包含低电压阈值字段。
-//
-// 这里先用 2S 锂电的保守占位值 6500mV。
-// 后续做电源实测后，建议把它迁移到 SafetyParams，
-// 同时提升 PARAM_BLOCK_VERSION，避免 NVS 中旧参数结构被误读。
-constexpr std::uint32_t kDefaultLowBatteryStopMv = 6500U;
-
 // JX-2R-01 规格书给出的参考工作点。
 //
 // VH 是热敏头加热电源，不是 ESP32 的 3.3V 逻辑电源。
@@ -117,8 +110,8 @@ std::uint32_t ApplyVoltageModel(std::uint32_t pulseUs,
   }
 
   std::uint32_t vhMv = batteryMv;
-  if (vhMv < kDefaultLowBatteryStopMv) {
-    vhMv = kDefaultLowBatteryStopMv;
+  if (vhMv < mp::SAFETY_DEFAULT_LOW_BATTERY_STOP_MV) {
+    vhMv = mp::SAFETY_DEFAULT_LOW_BATTERY_STOP_MV;
   }
   if (vhMv > kVoltageCompMaxMv) {
     vhMv = kVoltageCompMaxMv;
@@ -192,7 +185,7 @@ AppErrorCode ThermalSafety_CheckCanPrint(const SensorSnapshot& sensorSnapshot,
   }
 
   if (params.safety.forbidHeatWhenLowVoltage != 0U &&
-      sensorSnapshot.batteryMv < kDefaultLowBatteryStopMv) {
+      sensorSnapshot.batteryMv < SAFETY_DEFAULT_LOW_BATTERY_STOP_MV) {
     return ERR_POWER_LOW_BATTERY;
   }
 

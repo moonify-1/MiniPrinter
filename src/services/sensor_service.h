@@ -14,6 +14,7 @@ struct SensorSnapshot {
   bool paperPresent;        // true 表示检测到有纸。
   float headTempC;          // 打印头温度，单位摄氏度。
   std::uint32_t batteryMv;  // 电池电压，单位 mV。
+  std::uint8_t chargeStatus; // ChargeStatus 的数值，避免 API 层只能看到布尔值。
   bool charging;            // true 表示当前处于充电状态。
   bool motorFault;          // true 表示电机驱动报告故障。
   SensorValidity validity;  // 这组读数整体是否可信。

@@ -145,6 +145,23 @@ const char* KeyEventText(mp::KeyEvent event) {
   }
 }
 
+const char* ChargeStatusText(std::uint8_t status) {
+  switch (status) {
+    case 0:
+      return "UNKNOWN";
+    case 1:
+      return "NOT_CHARGING";
+    case 2:
+      return "CHARGING";
+    case 3:
+      return "FULL";
+    case 4:
+      return "FAULT";
+    default:
+      return "UNKNOWN";
+  }
+}
+
 void MarkApiConnected() {
   if (mp::g_rtos.systemEvents != nullptr) {
     xEventGroupSetBits(mp::g_rtos.systemEvents, mp::EVT_COMM_CONNECTED);
@@ -266,6 +283,10 @@ String SensorJsonFields(const mp::SensorSnapshot& sensor) {
   json += String(sensor.headTempC, 1);
   json += ",\"battery_mv\":";
   json += sensor.batteryMv;
+  json += ",\"charge_status\":\"";
+  json += ChargeStatusText(sensor.chargeStatus);
+  json += "\",\"charge_status_raw\":";
+  json += sensor.chargeStatus;
   json += ",\"charging\":";
   json += sensor.charging ? "true" : "false";
   json += ",\"motor_fault\":";
@@ -478,6 +499,14 @@ void HandleBattery() {
   String json = JsonHeader(true, "OK", "battery");
   json += ",\"battery_mv\":";
   json += sensor.batteryMv;
+  json += ",\"battery_ok\":";
+  json += ((bits & mp::EVT_BAT_OK) != 0U) ? "true" : "false";
+  json += ",\"low_voltage_stop_mv\":";
+  json += mp::SAFETY_DEFAULT_LOW_BATTERY_STOP_MV;
+  json += ",\"charge_status\":\"";
+  json += ChargeStatusText(sensor.chargeStatus);
+  json += "\",\"charge_status_raw\":";
+  json += sensor.chargeStatus;
   json += ",\"charging\":";
   json += sensor.charging ? "true" : "false";
   json += ",\"low_power\":";

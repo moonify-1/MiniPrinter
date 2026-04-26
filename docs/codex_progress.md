@@ -661,3 +661,22 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 12，完善电池状态与低电压策略展示。
+
+## Step 41
+
+- 时间：2026-04-26 22:03:34
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 12：完善 IP2326 充电状态与电池策略
+- 结果：
+  - 新增统一低电压保护线 `SAFETY_DEFAULT_LOW_BATTERY_STOP_MV=6500mV`。
+  - `SensorService` 根据 `batteryMv` 维护 `EVT_BAT_OK` 和 `EVT_LOW_POWER`。
+  - `SensorSnapshot` 增加 `chargeStatus` 原始枚举值，WiFi API 可区分 `UNKNOWN` 和真实充电状态。
+  - `GET /api/v1/status`、`GET /api/v1/sensors`、`GET /api/v1/battery` 增加电池可读字段。
+  - 真实步进电机工厂测试在硬件宏开启时增加低电压和电机故障检查。
+  - 新增 `docs/电池策略.md`，明确 `EQD`、`BAT_STAT` 和低电压保护边界。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_SENSORS=1" python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_STEPPER=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 13，补齐参数 API 白名单和校验。

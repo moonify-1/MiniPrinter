@@ -16,10 +16,6 @@ constexpr float kHeadTempValidMaxC = 120.0F;
 constexpr std::uint32_t kBatteryValidMinMv = 3000U;
 constexpr std::uint32_t kBatteryValidMaxMv = 9000U;
 
-// 当前缺少正式电源参数，因此先用保守低电压阈值。
-// 2S 锂电在 6500mV 附近已经偏低，后续应进入 ParamBlock。
-constexpr std::uint32_t kBatteryOkMinMv = 6500U;
-
 mp::SensorSnapshot g_latestSnapshot = {};
 
 // 把 FreeRTOS Tick 转成毫秒。
@@ -66,10 +62,15 @@ void UpdateSystemEvents(const mp::SensorSnapshot& snapshot) {
   }
 
   if (snapshot.validity == mp::SensorValidity::VALID &&
-      snapshot.batteryMv >= kBatteryOkMinMv) {
+      snapshot.batteryMv >= mp::SAFETY_DEFAULT_LOW_BATTERY_STOP_MV) {
     setBits |= mp::EVT_BAT_OK;
+    clearBits |= mp::EVT_LOW_POWER;
+  } else if (snapshot.validity == mp::SensorValidity::VALID) {
+    clearBits |= mp::EVT_BAT_OK;
+    setBits |= mp::EVT_LOW_POWER;
   } else {
     clearBits |= mp::EVT_BAT_OK;
+    clearBits |= mp::EVT_LOW_POWER;
   }
 
   if (snapshot.validity == mp::SensorValidity::VALID && !snapshot.motorFault) {
@@ -115,7 +116,9 @@ SensorSnapshot SensorService_Poll() {
   snapshot.paperPresent = driver.readPaperPresent();
   snapshot.headTempC = driver.readHeadTempC();
   snapshot.batteryMv = driver.readBatteryMv();
-  snapshot.charging = driver.readChargeStatus() == ChargeStatus::CHARGING;
+  const ChargeStatus chargeStatus = driver.readChargeStatus();
+  snapshot.chargeStatus = static_cast<std::uint8_t>(chargeStatus);
+  snapshot.charging = chargeStatus == ChargeStatus::CHARGING;
   snapshot.motorFault = driver.readMotorFault();
   snapshot.tickMs = NowMs();
 
