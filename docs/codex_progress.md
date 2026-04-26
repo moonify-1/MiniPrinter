@@ -404,3 +404,27 @@
   - 使用 `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1"` 额外编译通过。
 - 下一步建议：
   - 下一步适合接入真实串口执行 `ping/status/safe-off/sensor-test`，确认协议收发和安全关闭命令，再进入 GPIO 波形验证。
+
+## Step 25
+
+- 时间：2026-04-26 18:56:00
+- 状态：已完成
+- 结果：
+  - 读取 `项目背景/` 下的原理图、BOM、ESP32 GPIO 映射图和关键器件规格书。
+  - 新增 `docs/硬件匹配分析.md`，对照当前固件列出已匹配项和未匹配项。
+  - 确认硬件方向与当前固件架构匹配，但真实 GPIO、真实传感器、电池 ADC、按键、充电状态、电机节奏和热模型仍未完整匹配。
+  - 发现当前文档和代码缺少 `EQD` 电池电压 ADC 网络。
+  - 同步更新 `docs/项目结构.md`，把 `docs/硬件匹配分析.md` 加入正式项目结构。
+- 下一步建议：
+  - 下一步适合先补 `docs/pin_map.md` 和 `src/bsp/bsp_pins.h` 的真实 GPIO 映射，并新增 `EQD`，但继续保持真实硬件宏默认关闭。
+
+## Step 26
+
+- 时间：2026-04-26 18:56:49
+- 状态：已完成
+- 结果：
+  - 根据 `项目背景/ESP32GPIO映射图.png` 整理出 `项目背景/ESP32GPIO映射图.md`。
+  - 文档包含板卡基础信息、图片标签含义、电源/特殊引脚、左侧排针 GPIO、右侧排针 GPIO 和本项目选引脚建议。
+  - 同步更新 `docs/项目结构.md` 与 `docx/项目结构.md`，把新增 Markdown 资料加入项目结构。
+- 下一步建议：
+  - 后续分配真实热敏头、电机、传感器引脚前，应对照该 Markdown 与 `docs/pin_map.md`，优先避开 BOOT、USB、UART0、JTAG 等敏感引脚。
