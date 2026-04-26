@@ -14,6 +14,7 @@
 #include "services/health_service.h"
 #include "services/log_service.h"
 #include "services/param_service.h"
+#include "services/print_file_service.h"
 #include "services/print_service.h"
 #include "services/print_spooler.h"
 #include "tasks/task_command.h"
@@ -88,6 +89,7 @@ void setup() {
   mp::Log_Init();
   mp::Param_Init();
   (void)mp::Param_Load();
+  mp::PrintFileService_Init();
   mp::PrintService_Init();
   mp::Health_Init();
 

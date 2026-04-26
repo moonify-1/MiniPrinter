@@ -483,3 +483,22 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 02，新增打印文件 WiFi 上传服务，先只支持 384 点宽 raw 数据。
+
+## Step 31
+
+- 时间：2026-04-26 21:20:08
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 02：设计并实现打印文件 WiFi 上传
+- 结果：
+  - 新增 `src/services/print_file_service.h/.cpp`，使用固定 RAM 槽管理 WiFi 上传的 raw 打印文件。
+  - 当前最多保留 2 个上传文件，每个文件最多 64 行 / 3072 字节。
+  - 支持 `POST /api/v1/print/files` 创建上传会话，要求传入 `size` 和 `crc32`。
+  - 支持 `PUT /api/v1/print/files/{file_id}/chunks/{index}` 上传分片，分片偏移按 512 字节计算。
+  - 支持 `POST /api/v1/print/files/{file_id}/complete` 校验总大小、48 字节行对齐和 CRC32。
+  - 支持 `GET /api/v1/print/files` 列表和 `DELETE /api/v1/print/files/{file_id}` 删除。
+  - 新增 `docs/wifi_api.md`，记录最大文件大小、分片大小和错误返回格式。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 03，把 `COMPLETE` 状态的 `file_id` 接入 WiFi 启动打印、当前打印查询和取消 API。
