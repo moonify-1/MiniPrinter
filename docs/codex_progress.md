@@ -541,3 +541,19 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 05，补全真实 GPIO 映射文档和 BSP 引脚常量。
+
+## Step 34
+
+- 时间：2026-04-26 21:34:32
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 05：补全真实 GPIO 映射文档和 BSP 引脚常量
+- 结果：
+  - 更新 `docs/pin_map.md`，把用户已复核连通性的 MCU 网络到 GPIO 映射整理成正式表格。
+  - 更新 `src/bsp/bsp_pins.h`，写入 PAPER_N、G_NFAULT、G_NSLEEP、G_KEY、BAT_STAT、EQD、G_VH、LAT、DI、CLK、AIN1、AIN2、BIN1、BIN2、TM1、STB1~STB6 的 constexpr 引脚常量。
+  - 新增 `PIN_EQD`，用于后续真实电池电压 ADC 读取。
+  - 每个危险或易混淆网络旁补充了用途、有效电平或安全风险注释。
+  - 未开启真实硬件功能宏，未修改打印头、电机业务逻辑。
+- 验证：
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 06，加入真实传感器驱动骨架，优先接入 EQD 和 G_NFAULT。
