@@ -6,6 +6,7 @@
 #include "app/app_system.h"
 #include "app/app_print.h"
 #include "bsp/bsp_board.h"
+#include "bsp/bsp_timer.h"
 #include "common/fixed_pool.h"
 #include "config/default_params.h"
 #include "drivers/stepper/drv_stepper.h"
@@ -30,6 +31,8 @@ constexpr TickType_t kMockFeedDelayTicks = pdMS_TO_TICKS(5U);
 constexpr TickType_t kRunningStatePollTicks = pdMS_TO_TICKS(10U);
 constexpr std::uint32_t kMaxMockFeedSteps = 200U;
 constexpr std::uint8_t kRunningStatePollMax = 20U;
+constexpr std::uint8_t kDefaultStepsPerPrintLine = 2U;
+constexpr std::uint16_t kDefaultLineStepIntervalUs = 3000U;
 
 TaskHandle_t g_printTaskHandle = nullptr;
 bool g_mockDriversReady = false;
@@ -386,12 +389,29 @@ void ProcessLine(mp::LineBuffer* line) {
     }
   }
 
-  stepper.stepForward();
-  if (stepper.isFault()) {
-    (void)mp::PrintSpooler_FreeLine(line);
-    HandlePrintError(mp::ERR_MOTOR_FAULT, "stepper fault after step", head,
-                     stepper, useRealHardware);
-    return;
+  // JX-2R-01 规格给出 8 dots/mm，等价于一行点距 0.125mm。
+  // 机芯步进距离为 0.0625mm/step，因此每打印一行后默认走 2 步。
+  // 这里从 ParamBlock 读取，是为了后续实测后只改参数，不改打印流程。
+  const std::uint8_t stepsPerLine =
+      (params.motor.stepsPerPrintLine == 0U)
+          ? kDefaultStepsPerPrintLine
+          : params.motor.stepsPerPrintLine;
+  const std::uint16_t stepIntervalUs =
+      (params.motor.runPhaseIntervalUs == 0U)
+          ? kDefaultLineStepIntervalUs
+          : params.motor.runPhaseIntervalUs;
+
+  for (std::uint8_t step = 0U; step < stepsPerLine; ++step) {
+    stepper.stepForward();
+    if (stepper.isFault()) {
+      (void)mp::PrintSpooler_FreeLine(line);
+      HandlePrintError(mp::ERR_MOTOR_FAULT, "stepper fault after step", head,
+                       stepper, useRealHardware);
+      return;
+    }
+    if ((step + 1U) < stepsPerLine) {
+      mp::Bsp_DelayUs(stepIntervalUs);
+    }
   }
   stepper.release();
 

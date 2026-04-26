@@ -610,3 +610,21 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_STEPPER=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 09，把走纸节奏从占位推进到 2 步/行的可解释模型。
+
+## Step 38
+
+- 时间：2026-04-26 21:34:32
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 09：按机芯规格闭环走纸节奏
+- 结果：
+  - `ParamBlock` 版本升到 2，`MotorParams` 新增 `stepsPerPrintLine`。
+  - 默认走纸模型按 `8 dots/mm` 与 `0.0625mm/step` 推导为每打印一行走 2 步。
+  - 默认步进间隔更新为起步 5000us、常速 3000us、较快 2000us 的保守占位。
+  - `PrintEngineTask` 每行打印后按 `params.motor.stepsPerPrintLine` 执行走纸，不再固定只走 1 步。
+  - `GET /api/v1/params` 返回 motor 走纸节奏参数。
+  - 新增 `docs/走纸节奏模型.md` 说明点距、步距和行进给关系。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_STEPPER=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 10，按规格书完善保守热敏头热模型。

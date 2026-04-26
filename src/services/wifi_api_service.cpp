@@ -302,6 +302,14 @@ String ParamJson(const mp::ParamBlock& params) {
   json += params.print.bytesPerLine;
   json += ",\"stb_group_count\":";
   json += params.print.stbGroupCount;
+  json += "},\"motor\":{\"steps_per_line\":";
+  json += params.motor.stepsPerPrintLine;
+  json += ",\"start_interval_us\":";
+  json += params.motor.startPhaseIntervalUs;
+  json += ",\"run_interval_us\":";
+  json += params.motor.runPhaseIntervalUs;
+  json += ",\"fast_interval_us\":";
+  json += params.motor.fastPhaseIntervalUs;
   json += "},\"safety\":{\"max_heat_dots\":";
   json += params.safety.maxSimultaneousHeatDots;
   json += ",\"temp_stop_c\":";

@@ -17,7 +17,7 @@ constexpr std::uint32_t PARAM_BLOCK_MAGIC = 0x4D505042UL;  // "MPPB"
 // 参数块版本号。
 //
 // 后续如果结构体字段发生兼容性变化，就应该提升版本号。
-constexpr std::uint16_t PARAM_BLOCK_VERSION = 1U;
+constexpr std::uint16_t PARAM_BLOCK_VERSION = 2U;
 
 // 打印相关参数。
 //
@@ -38,6 +38,7 @@ struct PrintParams {
 // 当前没有足够硬件依据时，保持保守占位值 0，
 // 表示后续必须结合机构、驱动芯片和实测结果再定。
 struct MotorParams {
+  std::uint8_t stepsPerPrintLine;       // 每打印一行后走多少个整步。
   std::uint16_t startPhaseIntervalUs; // 起步时的相位切换间隔。
   std::uint16_t runPhaseIntervalUs;   // 常速运行时的相位切换间隔。
   std::uint16_t fastPhaseIntervalUs;  // 高速运行时的相位切换间隔。
@@ -117,9 +118,10 @@ constexpr PrintParams DEFAULT_PRINT_PARAMS = {
 };
 
 constexpr MotorParams DEFAULT_MOTOR_PARAMS = {
-    0U, // 起步节奏待结合电机与机构实测确认。
-    0U, // 常速节奏待结合电机与机构实测确认。
-    0U, // 高速节奏待结合电机与机构实测确认。
+    2U,     // 8 dots/mm => 行距 0.125mm；机芯 0.0625mm/step，因此每行 2 步。
+    5000U,  // 起步节奏保守偏慢，真实噪声/力矩需实测确认。
+    3000U,  // 常速节奏保守占位，后续按机芯和纸路实测微调。
+    2000U,  // 当前允许的最快占位节奏，不直接用于高速打印验收。
 };
 
 constexpr SensorParams DEFAULT_SENSOR_PARAMS = {
