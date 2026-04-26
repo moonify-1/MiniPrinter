@@ -440,3 +440,15 @@
   - 同步更新 `docs/项目结构.md` 与 `docx/项目结构.md`。
 - 下一步建议：
   - 下一步可从 `docs/待办任务.md` 的 Task 01 开始，先补 `docs/pin_map.md` 和 `src/bsp/bsp_pins.h` 的真实 GPIO 映射，并继续保持真实硬件宏默认关闭。
+
+## Step 28
+
+- 时间：2026-04-26 20:29:20
+- 状态：已完成
+- 结果：
+  - 整理用户已补充的硬件信息，新增 `docs/硬件补充信息整理.md`。
+  - 将 `docs/需要补充的信息.md` 缩减为剩余待补充事项，避免重复追问已确认内容。
+  - 根据补充信息小幅修正 `docs/待办任务.md`：GPIO 连通性已复核、GPIO35~40 可用、GPIO38 不再阻塞 STB3、`PAPER_N/TM1` 第一阶段保守处理、调试验证改为 WiFi 测试 API 方向。
+  - 同步更新 `docs/项目结构.md` 与 `docx/项目结构.md`。
+- 下一步建议：
+  - 下一步可执行 `docs/待办任务.md` 的 Task 01，将已复核的 GPIO 映射写入 `docs/pin_map.md` 和 `src/bsp/bsp_pins.h`。
