@@ -45,6 +45,10 @@
 | `POST /api/v1/print/files/{file_id}/complete` | 校验总大小、48 字节行对齐和 CRC32。 |
 | `GET /api/v1/print/files` | 列出已创建的上传文件。 |
 | `DELETE /api/v1/print/files/{file_id}` | 删除上传文件并释放槽位。 |
+| `POST /api/v1/print/jobs?file_id=<id>&copies=1` | 根据已完成上传的 `file_id` 创建并启动打印任务。 |
+| `GET /api/v1/print/jobs/current` | 查询当前打印任务状态。 |
+| `POST /api/v1/print/jobs/current/cancel` | 取消当前打印任务。 |
+| `POST /api/v1/feed?steps=<n>` | 走纸请求，当前限制 `1..200` 步。 |
 
 ## 4. 打印文件上传限制
 
@@ -59,4 +63,6 @@
 ## 5. 安全说明
 
 - Task 02 只建立上传和校验路径，不打开 VH，不唤醒电机，不启动真实打印。
-- 后续启动打印必须通过 `POST /api/v1/print/jobs`，不能再把 UART `PRINT_LINE/PRINT_START` 作为正式产品入口。
+- 启动打印必须通过 `POST /api/v1/print/jobs`，不能再把 UART `PRINT_LINE/PRINT_START` 作为正式产品入口。
+- `SAFE_MODE` 下禁止启动打印和走纸；`safe-off`、状态查询和取消类安全动作仍可用于收敛系统。
+- `POST /api/v1/print/jobs` 第一阶段只支持 `copies=1`，`density` 和 `heat` 可传 `0..100` 做范围校验，但还不会直接改写持久化参数。

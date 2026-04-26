@@ -93,4 +93,14 @@ std::size_t PrintFileService_List(PrintFileSnapshot* out, std::size_t maxCount);
 bool PrintFileService_ReadLine(std::uint32_t fileId, std::uint32_t lineNo,
                                std::uint8_t* out, std::size_t outLen);
 
+// 把已完成上传的文件复制进现有打印行队列。
+//
+// 这个函数只做“文件内容 -> LineBuffer 队列”的搬运：
+// - 不直接启动打印头。
+// - 不打开 VH。
+// - 不控制电机。
+// 真正的打印流程仍由 PrintService 和 PrintEngineTask 调度。
+AppErrorCode PrintFileService_QueueForPrint(std::uint32_t fileId,
+                                            std::uint32_t jobId);
+
 }  // namespace mp

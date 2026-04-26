@@ -502,3 +502,22 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 03，把 `COMPLETE` 状态的 `file_id` 接入 WiFi 启动打印、当前打印查询和取消 API。
+
+## Step 32
+
+- 时间：2026-04-26 21:29:25
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 03：实现 WiFi 启动打印和任务控制
+- 结果：
+  - `PrintFileService` 新增 `PrintFileService_QueueForPrint()`，把已完成上传的 raw 文件逐行复制进现有 `PrintSpooler`。
+  - 新增 `POST /api/v1/print/jobs`，根据 `file_id` 创建打印任务，第一阶段只支持 `copies=1`。
+  - 新增 `GET /api/v1/print/jobs/current`，返回当前 `job_id`、`file_id`、状态、已打印行数和错误码。
+  - 新增 `POST /api/v1/print/jobs/current/cancel`，复用 `PrintService_RequestCancel()` 取消当前任务。
+  - 新增 `POST /api/v1/feed`，复用 `PrintService_RequestFeed()` 并限制 `steps=1..200`。
+  - `SAFE_MODE` 下禁止启动打印和走纸，避免危险动作通过 WiFi API 触发。
+  - HTTP 层仍只负责收发 JSON 和投递服务请求，不直接操作打印头、电机、VH 或 STB。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 04，补齐传感器、电池、错误、参数、健康和工厂测试等 WiFi 状态/控制 API。

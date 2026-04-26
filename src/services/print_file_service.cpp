@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "services/print_spooler.h"
+
 namespace {
 
 // 固定上传槽。
@@ -226,6 +228,41 @@ bool PrintFileService_ReadLine(std::uint32_t fileId, std::uint32_t lineNo,
       lineNo * static_cast<std::uint32_t>(LINE_BUFFER_DATA_SIZE);
   std::memcpy(out, &slot->data[offset], LINE_BUFFER_DATA_SIZE);
   return true;
+}
+
+AppErrorCode PrintFileService_QueueForPrint(std::uint32_t fileId,
+                                            std::uint32_t jobId) {
+  PrintFileSlot* slot = FindSlot(fileId);
+  if (slot == nullptr || slot->snapshot.state != PrintFileState::COMPLETE) {
+    return ERR_COMM_CRC;
+  }
+
+  for (std::uint32_t lineNo = 0U; lineNo < slot->snapshot.lineCount;
+       ++lineNo) {
+    LineBuffer* line = PrintSpooler_AllocLine(10U);
+    if (line == nullptr) {
+      PrintSpooler_ClearJob(jobId);
+      return ERR_QUEUE_FULL;
+    }
+
+    const std::uint32_t offset =
+        lineNo * static_cast<std::uint32_t>(LINE_BUFFER_DATA_SIZE);
+    line->jobId = jobId;
+    line->lineNo = lineNo;
+    std::memcpy(line->data, &slot->data[offset], LINE_BUFFER_DATA_SIZE);
+    line->blackDotCount =
+        PrintSpooler_CountBlackDots(line->data, LINE_BUFFER_DATA_SIZE);
+    line->flags = 0U;
+
+    const AppErrorCode submitResult = PrintSpooler_SubmitLine(line);
+    if (submitResult != APP_OK) {
+      (void)PrintSpooler_FreeLine(line);
+      PrintSpooler_ClearJob(jobId);
+      return submitResult;
+    }
+  }
+
+  return APP_OK;
 }
 
 }  // namespace mp

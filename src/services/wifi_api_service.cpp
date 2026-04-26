@@ -17,12 +17,16 @@
 #include "services/error_service.h"
 #include "services/log_service.h"
 #include "services/print_file_service.h"
+#include "services/print_service.h"
 #include "services/sensor_service.h"
 
 namespace {
 
 WebServer g_server(80);
 bool g_started = false;
+std::uint32_t g_nextWifiJobId = 1U;
+std::uint32_t g_currentWifiJobId = 0U;
+std::uint32_t g_currentWifiFileId = 0U;
 
 void SendJson(int status, const String& json);
 
@@ -122,6 +126,24 @@ void SendErrorJson(int status, const char* code, const char* message,
   SendJson(status, json);
 }
 
+bool IsSafeModeActive() {
+  return mp::SystemApp_GetState() == mp::SystemState::SAFE_MODE ||
+         mp::Error_IsSafeModeRequired();
+}
+
+bool RequireNotSafeMode(const char* action) {
+  if (!IsSafeModeActive()) {
+    return true;
+  }
+
+  String json = JsonHeader(false, "SAFE_MODE_BLOCKED", action);
+  json += ",\"system_state\":\"";
+  json += SystemStateText(mp::SystemApp_GetState());
+  json += "\"}";
+  SendJson(409, json);
+  return false;
+}
+
 void SendJson(int status, const String& json) {
   MarkApiConnected();
   g_server.send(status, "application/json", json);
@@ -158,6 +180,20 @@ bool ParseU32Text(const String& text, std::uint32_t* out) {
 
   *out = value;
   return true;
+}
+
+bool ParseOptionalU32Arg(const char* name, std::uint32_t defaultValue,
+                         std::uint32_t* out) {
+  if (out == nullptr) {
+    return false;
+  }
+
+  if (!g_server.hasArg(name)) {
+    *out = defaultValue;
+    return true;
+  }
+
+  return ParseU32Text(g_server.arg(name), out);
 }
 
 String SensorJsonFields(const mp::SensorSnapshot& sensor) {
@@ -369,6 +405,148 @@ void HandlePrintFileDelete(std::uint32_t fileId) {
   SendJson(200, json);
 }
 
+void HandlePrintJobCreate() {
+  if (!RequireNotSafeMode("start print is blocked in SAFE_MODE")) {
+    return;
+  }
+
+  if (mp::PrintApp_IsActive()) {
+    SendErrorJson(409, "PRINT_BUSY", "current print job is active",
+                  mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  std::uint32_t fileId = 0U;
+  std::uint32_t copies = 1U;
+  std::uint32_t density = 50U;
+  std::uint32_t heat = 50U;
+  if (!g_server.hasArg("file_id") ||
+      !ParseU32Text(g_server.arg("file_id"), &fileId) ||
+      !ParseOptionalU32Arg("copies", 1U, &copies) ||
+      !ParseOptionalU32Arg("density", 50U, &density) ||
+      !ParseOptionalU32Arg("heat", 50U, &heat)) {
+    SendErrorJson(400, "BAD_REQUEST",
+                  "file_id is required; copies/density/heat must be numbers",
+                  mp::ERR_COMM_CRC);
+    return;
+  }
+
+  if (copies != 1U || density > 100U || heat > 100U) {
+    SendErrorJson(400, "PARAM_OUT_OF_RANGE",
+                  "v1 supports copies=1 and density/heat in 0..100",
+                  mp::ERR_COMM_FRAME_TOO_LONG);
+    return;
+  }
+
+  mp::PrintFileSnapshot file = {};
+  if (!mp::PrintFileService_Get(fileId, &file) ||
+      file.state != mp::PrintFileState::COMPLETE) {
+    SendErrorJson(404, "PRINT_FILE_NOT_READY",
+                  "file_id is missing or not COMPLETE", mp::ERR_COMM_CRC);
+    return;
+  }
+
+  const std::uint32_t jobId = g_nextWifiJobId++;
+  if (!mp::PrintService_RequestStart(jobId)) {
+    SendErrorJson(500, "PRINT_START_FAILED",
+                  "failed to queue print start", mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  const mp::AppErrorCode queueResult =
+      mp::PrintFileService_QueueForPrint(fileId, jobId);
+  if (queueResult != mp::APP_OK) {
+    (void)mp::PrintService_RequestCancel(jobId);
+    SendErrorJson(500, "PRINT_QUEUE_FAILED",
+                  "failed to queue file lines for print", queueResult);
+    return;
+  }
+
+  if (!mp::PrintService_RequestEnd(jobId)) {
+    (void)mp::PrintService_RequestCancel(jobId);
+    SendErrorJson(500, "PRINT_END_FAILED", "failed to queue print end",
+                  mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  g_currentWifiJobId = jobId;
+  g_currentWifiFileId = fileId;
+
+  String json = JsonHeader(true, "OK", "print job queued");
+  json += ",\"job_id\":";
+  json += jobId;
+  json += ",\"file_id\":";
+  json += fileId;
+  json += ",\"line_total\":";
+  json += file.lineCount;
+  json += ",\"copies\":1}";
+  SendJson(202, json);
+}
+
+void HandlePrintJobCurrent() {
+  const mp::PrintAppSnapshot print = mp::PrintApp_GetSnapshot();
+  String json = JsonHeader(true, "OK", "current print job");
+  json += ",\"job_id\":";
+  json += print.jobId;
+  json += ",\"file_id\":";
+  json += g_currentWifiFileId;
+  json += ",\"state\":\"";
+  json += PrintStateText(print.state);
+  json += "\",\"line_done\":";
+  json += print.printedLines;
+  json += ",\"end_requested\":";
+  json += print.endRequested ? "true" : "false";
+  json += ",\"error\":";
+  json += print.lastError;
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandlePrintJobCancel() {
+  const mp::PrintAppSnapshot print = mp::PrintApp_GetSnapshot();
+  const std::uint32_t jobId =
+      (print.jobId != 0U) ? print.jobId : g_currentWifiJobId;
+  if (jobId == 0U || !mp::PrintService_RequestCancel(jobId)) {
+    SendErrorJson(409, "PRINT_CANCEL_FAILED",
+                  "no current job or cancel queue is full", mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "print cancel queued");
+  json += ",\"job_id\":";
+  json += jobId;
+  json += ",\"file_id\":";
+  json += g_currentWifiFileId;
+  json += "}";
+  SendJson(202, json);
+}
+
+void HandleFeed() {
+  if (!RequireNotSafeMode("feed is blocked in SAFE_MODE")) {
+    return;
+  }
+
+  std::uint32_t steps = 1U;
+  if (!ParseOptionalU32Arg("steps", 1U, &steps) || steps == 0U ||
+      steps > 200U) {
+    SendErrorJson(400, "PARAM_OUT_OF_RANGE",
+                  "steps must be in 1..200", mp::ERR_COMM_FRAME_TOO_LONG);
+    return;
+  }
+
+  if (!mp::PrintService_RequestFeed(steps)) {
+    SendErrorJson(500, "FEED_FAILED", "failed to queue feed request",
+                  mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "feed queued");
+  json += ",\"steps\":";
+  json += steps;
+  json += "}";
+  SendJson(202, json);
+}
+
 void HandleSafeOff() {
   const mp::AppErrorCode result = mp::FactoryTest_SafeOff();
   if (result != mp::APP_OK) {
@@ -480,6 +658,11 @@ void RegisterRoutes() {
   g_server.on("/api/v1/safe-off", HTTP_POST, HandleSafeOff);
   g_server.on("/api/v1/print/files", HTTP_POST, HandlePrintFilesCreate);
   g_server.on("/api/v1/print/files", HTTP_GET, HandlePrintFilesList);
+  g_server.on("/api/v1/print/jobs", HTTP_POST, HandlePrintJobCreate);
+  g_server.on("/api/v1/print/jobs/current", HTTP_GET, HandlePrintJobCurrent);
+  g_server.on("/api/v1/print/jobs/current/cancel", HTTP_POST,
+              HandlePrintJobCancel);
+  g_server.on("/api/v1/feed", HTTP_POST, HandleFeed);
   g_server.onNotFound(HandleNotFound);
 }
 
