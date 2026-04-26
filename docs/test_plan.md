@@ -70,3 +70,4 @@
 - 默认 `MP_ENABLE_HW_STEPPER=0` 时，`MOTOR_TEST` 应返回 `ERR_HW_DISABLED`。
 - 启用硬件宏后，先发送小步数，例如 1 到 10 步。
 - 测试前后确认 nSLEEP、AIN/BIN 最终回到安全状态。
+- 真实硬件逐阶段结果填写到 `docs/硬件分阶段验收记录.md`。
