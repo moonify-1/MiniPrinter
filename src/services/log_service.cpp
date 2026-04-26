@@ -38,6 +38,11 @@ LogRuntimeState g_logState = {
     false,
 };
 
+constexpr std::size_t kRecentLogCapacity = 8U;
+mp::LogMsg g_recentLogs[kRecentLogCapacity] = {};
+std::size_t g_recentLogWriteIndex = 0U;
+std::size_t g_recentLogCount = 0U;
+
 // 把日志级别转成人类可读字符串。
 const char* LevelToString(mp::LogLevel level) {
   switch (level) {
@@ -102,6 +107,14 @@ bool EnqueueLog(const mp::LogMsg& msg, TickType_t waitTicks) {
   }
 
   return xQueueSend(mp::g_rtos.qLog, &msg, waitTicks) == pdPASS;
+}
+
+void StoreRecentLog(const mp::LogMsg& msg) {
+  g_recentLogs[g_recentLogWriteIndex] = msg;
+  g_recentLogWriteIndex = (g_recentLogWriteIndex + 1U) % kRecentLogCapacity;
+  if (g_recentLogCount < kRecentLogCapacity) {
+    ++g_recentLogCount;
+  }
 }
 
 // 输出短兜底日志。
@@ -175,6 +188,7 @@ void Log_WriteV(mp::LogLevel level, const char* module, const char* fmt,
 
   CopyStringToBuffer(msg.module, sizeof(msg.module), module);
   FormatLogText(msg.text, sizeof(msg.text), fmt, args);
+  StoreRecentLog(msg);
 
   if (!EnqueueLog(msg, GetQueueWaitTicks(level))) {
     HandleQueueFull(msg);
@@ -192,6 +206,8 @@ void Log_Init() {
   g_logState.fallbackError = 0U;
   g_logState.droppedFromIsr = 0U;
   g_logState.initialized = true;
+  g_recentLogWriteIndex = 0U;
+  g_recentLogCount = 0U;
 }
 
 void Log_SetLevel(LogLevel level) {
@@ -238,6 +254,23 @@ void Log_Debug(const char* module, const char* fmt, ...) {
   va_start(args, fmt);
   Log_WriteV(LogLevel::DEBUG, module, fmt, args);
   va_end(args);
+}
+
+std::size_t Log_GetRecent(LogMsg* out, std::size_t maxCount) {
+  if (out == nullptr || maxCount == 0U) {
+    return 0U;
+  }
+
+  const std::size_t count =
+      (g_recentLogCount < maxCount) ? g_recentLogCount : maxCount;
+  const std::size_t first =
+      (g_recentLogWriteIndex + kRecentLogCapacity - g_recentLogCount) %
+      kRecentLogCapacity;
+
+  for (std::size_t index = 0U; index < count; ++index) {
+    out[index] = g_recentLogs[(first + index) % kRecentLogCapacity];
+  }
+  return count;
 }
 
 }  // namespace mp

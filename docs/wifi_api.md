@@ -39,6 +39,19 @@
 |---|---|
 | `GET /api/v1/info` | 返回设备名、API 前缀和功能开关。 |
 | `GET /api/v1/status` | 返回系统状态、打印状态、传感器摘要和最近错误摘要。 |
+| `GET /api/v1/sensors` | 返回 paper、head_temp_c、battery_mv、charging、motor_fault、validity。 |
+| `GET /api/v1/battery` | 返回 battery_mv、charging、low_power 和读数有效性。 |
+| `GET /api/v1/error` | 返回最近错误事件。 |
+| `POST /api/v1/error/clear` | 清除可恢复错误。 |
+| `GET /api/v1/params` | 返回当前参数快照。 |
+| `PATCH /api/v1/params?...` | 修改安全参数白名单，先只更新 RAM。 |
+| `POST /api/v1/params/save` | 请求 ParamTask 延迟保存参数。 |
+| `POST /api/v1/params/factory-reset` | 恢复默认参数并请求保存。 |
+| `POST /api/v1/self-test` | 执行当前 mock 自检并设置自检通过事件。 |
+| `POST /api/v1/reboot` | 先 safe-off 再重启。 |
+| `POST /api/v1/safe-mode` | 主动进入 SAFE_MODE。 |
+| `GET /api/v1/health` | 返回关键任务心跳健康快照。 |
+| `GET /api/v1/logs/recent` | 返回最近 8 条内存日志快照。 |
 | `POST /api/v1/safe-off` | 立即关闭危险输出，是最高优先级安全 API。 |
 | `POST /api/v1/print/files?size=<bytes>&crc32=<crc>` | 创建 raw 打印文件上传会话。 |
 | `PUT /api/v1/print/files/{file_id}/chunks/{index}` | 上传一个 raw 分片，请求体为二进制数据。 |
@@ -66,3 +79,4 @@
 - 启动打印必须通过 `POST /api/v1/print/jobs`，不能再把 UART `PRINT_LINE/PRINT_START` 作为正式产品入口。
 - `SAFE_MODE` 下禁止启动打印和走纸；`safe-off`、状态查询和取消类安全动作仍可用于收敛系统。
 - `POST /api/v1/print/jobs` 第一阶段只支持 `copies=1`，`density` 和 `heat` 可传 `0..100` 做范围校验，但还不会直接改写持久化参数。
+- `PATCH /api/v1/params` 第一阶段只开放：`max_heat_dots`、`temp_stop_c`、`temp_resume_c`、`heat_start_us`、`heat_max_us`。

@@ -50,4 +50,10 @@ void Log_Warn(const char* module, const char* fmt, ...);
 void Log_Info(const char* module, const char* fmt, ...);
 void Log_Debug(const char* module, const char* fmt, ...);
 
+// 读取最近日志快照。
+//
+// out 指向调用方提供的数组；返回实际复制的条数。
+// 这是调试 API 使用的只读入口，不会从日志队列中取走消息。
+std::size_t Log_GetRecent(LogMsg* out, std::size_t maxCount);
+
 }  // namespace mp

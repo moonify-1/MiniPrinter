@@ -521,3 +521,23 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 04，补齐传感器、电池、错误、参数、健康和工厂测试等 WiFi 状态/控制 API。
+
+## Step 33
+
+- 时间：2026-04-26 21:34:32
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 04：补全 WiFi 状态展示和控制 API
+- 结果：
+  - 新增 `GET /api/v1/sensors` 和 `GET /api/v1/battery`。
+  - 新增 `GET /api/v1/error` 和 `POST /api/v1/error/clear`。
+  - 新增 `GET /api/v1/params`、`PATCH /api/v1/params`、`POST /api/v1/params/save`、`POST /api/v1/params/factory-reset`。
+  - 新增 `POST /api/v1/self-test`、`POST /api/v1/reboot`、`POST /api/v1/safe-mode`。
+  - 新增 `GET /api/v1/health` 和 `GET /api/v1/logs/recent`。
+  - `LogService` 新增最近日志快照接口，便于 WiFi API 返回最近 8 条日志。
+  - 参数 PATCH 第一阶段只开放安全白名单字段，并做范围校验；保存仍通过 `ParamService` 请求 ParamTask。
+  - `SAFE_MODE` 下禁止参数修改、启动打印和走纸；状态/错误/健康等只读接口仍可访问。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 05，补全真实 GPIO 映射文档和 BSP 引脚常量。

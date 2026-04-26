@@ -13,9 +13,12 @@
 #include "app/app_print.h"
 #include "app/app_system.h"
 #include "common/app_error.h"
+#include "config/safety_limits.h"
 #include "rtos/rtos_objects.h"
 #include "services/error_service.h"
+#include "services/health_service.h"
 #include "services/log_service.h"
+#include "services/param_service.h"
 #include "services/print_file_service.h"
 #include "services/print_service.h"
 #include "services/sensor_service.h"
@@ -99,6 +102,35 @@ const char* ErrorSeverityText(mp::ErrorSeverity severity) {
   }
 }
 
+const char* TaskIdText(mp::TaskId id) {
+  switch (id) {
+    case mp::TaskId::SYSTEM:
+      return "SYSTEM";
+    case mp::TaskId::LOGGER:
+      return "LOGGER";
+    case mp::TaskId::MONITOR:
+      return "MONITOR";
+    case mp::TaskId::ERROR:
+      return "ERROR";
+    case mp::TaskId::COMMAND:
+      return "COMMAND";
+    case mp::TaskId::PRINT_CTRL:
+      return "PRINT_CTRL";
+    case mp::TaskId::SENSOR:
+      return "SENSOR";
+    case mp::TaskId::PARAM:
+      return "PARAM";
+    case mp::TaskId::COMM:
+      return "COMM";
+    case mp::TaskId::WIFI_API:
+      return "WIFI_API";
+    case mp::TaskId::METRICS:
+      return "METRICS";
+    default:
+      return "UNKNOWN";
+  }
+}
+
 void MarkApiConnected() {
   if (mp::g_rtos.systemEvents != nullptr) {
     xEventGroupSetBits(mp::g_rtos.systemEvents, mp::EVT_COMM_CONNECTED);
@@ -113,6 +145,22 @@ String JsonHeader(bool ok, const char* code, const char* message) {
   json += code;
   json += "\",\"message\":\"";
   json += message;
+  json += "\"";
+  return json;
+}
+
+String JsonQuoted(const char* text) {
+  String json = "\"";
+  const char* cursor = (text != nullptr) ? text : "";
+  while (*cursor != '\0') {
+    const char ch = *cursor++;
+    if (ch == '"' || ch == '\\') {
+      json += "\\";
+      json += ch;
+    } else if (static_cast<unsigned char>(ch) >= 32U) {
+      json += ch;
+    }
+  }
   json += "\"";
   return json;
 }
@@ -215,6 +263,65 @@ String SensorJsonFields(const mp::SensorSnapshot& sensor) {
   return json;
 }
 
+String SensorSnapshotJson(const mp::SensorSnapshot& sensor) {
+  String json = "{\"summary\":true";
+  json += SensorJsonFields(sensor);
+  json += "}";
+  return json;
+}
+
+String ErrorEventJson(const mp::ErrorEvent& error) {
+  String json = "{";
+  json += "\"code\":";
+  json += error.code;
+  json += ",\"severity\":\"";
+  json += ErrorSeverityText(error.severity);
+  json += "\",\"module\":";
+  json += JsonQuoted(error.module);
+  json += ",\"detail\":";
+  json += JsonQuoted(error.detail);
+  json += ",\"timestamp\":";
+  json += error.timestamp;
+  json += ",\"safe_mode\":";
+  json += mp::Error_IsSafeModeRequired() ? "true" : "false";
+  json += "}";
+  return json;
+}
+
+String ParamJson(const mp::ParamBlock& params) {
+  String json = "{";
+  json += "\"magic\":";
+  json += params.magic;
+  json += ",\"version\":";
+  json += params.version;
+  json += ",\"crc32\":";
+  json += params.crc32;
+  json += ",\"print\":{\"dots_per_line\":";
+  json += params.print.dotsPerLine;
+  json += ",\"bytes_per_line\":";
+  json += params.print.bytesPerLine;
+  json += ",\"stb_group_count\":";
+  json += params.print.stbGroupCount;
+  json += "},\"safety\":{\"max_heat_dots\":";
+  json += params.safety.maxSimultaneousHeatDots;
+  json += ",\"temp_stop_c\":";
+  json += params.safety.tempStopThresholdC;
+  json += ",\"temp_resume_c\":";
+  json += params.safety.tempResumeThresholdC;
+  json += ",\"heat_start_us\":";
+  json += params.safety.heatPulseStartUs;
+  json += ",\"heat_max_us\":";
+  json += params.safety.heatPulseMaxUs;
+  json += ",\"forbid_heat_paper_missing\":";
+  json += params.safety.forbidHeatWhenPaperMissing;
+  json += ",\"forbid_heat_low_voltage\":";
+  json += params.safety.forbidHeatWhenLowVoltage;
+  json += "},\"comm\":{\"max_frame_length\":";
+  json += params.comm.maxFrameLength;
+  json += "}}";
+  return json;
+}
+
 const char* PrintFileStateText(mp::PrintFileState state) {
   switch (state) {
     case mp::PrintFileState::EMPTY:
@@ -296,6 +403,52 @@ void HandleStatus() {
   json += "\",\"safe_mode\":";
   json += mp::Error_IsSafeModeRequired() ? "true" : "false";
   json += "}}";
+  SendJson(200, json);
+}
+
+void HandleSensors() {
+  const mp::SensorSnapshot sensor = mp::SensorService_GetSnapshot();
+  String json = JsonHeader(true, "OK", "sensors");
+  json += ",\"sensors\":";
+  json += SensorSnapshotJson(sensor);
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleBattery() {
+  const mp::SensorSnapshot sensor = mp::SensorService_GetSnapshot();
+  EventBits_t bits = 0U;
+  if (mp::g_rtos.systemEvents != nullptr) {
+    bits = xEventGroupGetBits(mp::g_rtos.systemEvents);
+  }
+
+  String json = JsonHeader(true, "OK", "battery");
+  json += ",\"battery_mv\":";
+  json += sensor.batteryMv;
+  json += ",\"charging\":";
+  json += sensor.charging ? "true" : "false";
+  json += ",\"low_power\":";
+  json += ((bits & mp::EVT_LOW_POWER) != 0U) ? "true" : "false";
+  json += ",\"validity\":";
+  json += static_cast<unsigned>(sensor.validity);
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleErrorGet() {
+  String json = JsonHeader(true, "OK", "error");
+  json += ",\"error\":";
+  json += ErrorEventJson(mp::Error_GetLast());
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleErrorClear() {
+  mp::Error_ClearRecoverable();
+  String json = JsonHeader(true, "OK", "recoverable error cleared");
+  json += ",\"error\":";
+  json += ErrorEventJson(mp::Error_GetLast());
+  json += "}";
   SendJson(200, json);
 }
 
@@ -547,6 +700,200 @@ void HandleFeed() {
   SendJson(202, json);
 }
 
+bool ApplyU16Arg(const char* name, std::uint16_t minValue,
+                 std::uint16_t maxValue, std::uint16_t* field) {
+  if (!g_server.hasArg(name)) {
+    return true;
+  }
+
+  std::uint32_t value = 0U;
+  if (!ParseU32Text(g_server.arg(name), &value) || value < minValue ||
+      value > maxValue || field == nullptr) {
+    return false;
+  }
+
+  *field = static_cast<std::uint16_t>(value);
+  return true;
+}
+
+bool ApplyI16Arg(const char* name, std::int16_t minValue,
+                 std::int16_t maxValue, std::int16_t* field) {
+  if (!g_server.hasArg(name)) {
+    return true;
+  }
+
+  std::uint32_t value = 0U;
+  if (!ParseU32Text(g_server.arg(name), &value) ||
+      value > static_cast<std::uint32_t>(maxValue) ||
+      field == nullptr) {
+    return false;
+  }
+
+  const std::int16_t signedValue = static_cast<std::int16_t>(value);
+  if (signedValue < minValue) {
+    return false;
+  }
+
+  *field = signedValue;
+  return true;
+}
+
+void HandleParamsGet() {
+  String json = JsonHeader(true, "OK", "params");
+  json += ",\"params\":";
+  json += ParamJson(mp::Param_GetSnapshot());
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleParamsPatch() {
+  if (!RequireNotSafeMode("parameter changes are blocked in SAFE_MODE")) {
+    return;
+  }
+
+  mp::ParamBlock params = mp::Param_GetSnapshot();
+  bool ok = true;
+  ok = ApplyU16Arg("max_heat_dots", 1U, 64U,
+                   &params.safety.maxSimultaneousHeatDots) && ok;
+  ok = ApplyI16Arg("temp_stop_c", 40, 80,
+                   &params.safety.tempStopThresholdC) && ok;
+  ok = ApplyI16Arg("temp_resume_c", 30, 70,
+                   &params.safety.tempResumeThresholdC) && ok;
+  ok = ApplyU16Arg("heat_start_us", 1U, mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US,
+                   &params.safety.heatPulseStartUs) && ok;
+  ok = ApplyU16Arg("heat_max_us", params.safety.heatPulseStartUs,
+                   mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US,
+                   &params.safety.heatPulseMaxUs) && ok;
+  ok = ok &&
+       params.safety.tempResumeThresholdC < params.safety.tempStopThresholdC;
+
+  if (!ok) {
+    SendErrorJson(400, "PARAM_OUT_OF_RANGE",
+                  "allowed params: max_heat_dots, temp_stop_c, "
+                  "temp_resume_c, heat_start_us, heat_max_us",
+                  mp::ERR_PARAM_CRC);
+    return;
+  }
+
+  (void)mp::Param_Update(params);
+  String json = JsonHeader(true, "OK", "params updated in RAM");
+  json += ",\"params\":";
+  json += ParamJson(mp::Param_GetSnapshot());
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleParamsSave() {
+  if (!mp::Param_RequestSave()) {
+    SendErrorJson(500, "PARAM_SAVE_FAILED", "failed to queue save request",
+                  mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "param save queued");
+  json += "}";
+  SendJson(202, json);
+}
+
+void HandleParamsFactoryReset() {
+  if (!mp::Param_ResetDefault()) {
+    SendErrorJson(500, "PARAM_RESET_FAILED", "failed to reset params",
+                  mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "default params restored");
+  json += ",\"params\":";
+  json += ParamJson(mp::Param_GetSnapshot());
+  json += "}";
+  SendJson(202, json);
+}
+
+void HandleSelfTest() {
+  if (mp::g_rtos.systemEvents != nullptr) {
+    xEventGroupSetBits(mp::g_rtos.systemEvents, mp::EVT_SELFTEST_OK);
+  }
+
+  String json = JsonHeader(true, "OK", "self test mock passed");
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleSafeMode() {
+  const mp::AppErrorCode reason = mp::FactoryTest_EnterSafeMode();
+  String json = JsonHeader(true, "OK", "entered safe mode");
+  json += ",\"reason\":";
+  json += reason;
+  json += "}";
+  SendJson(200, json);
+}
+
+void HandleReboot() {
+  String json = JsonHeader(true, "OK", "rebooting after safe-off");
+  json += "}";
+  SendJson(202, json);
+  delay(20);
+  mp::FactoryTest_Reboot();
+}
+
+void HandleHealth() {
+  const mp::HealthSnapshot health = mp::Health_GetSnapshot();
+  String json = JsonHeader(true, "OK", "health");
+  json += ",\"all_healthy\":";
+  json += health.allHealthy ? "true" : "false";
+  json += ",\"has_critical_timeout\":";
+  json += health.hasCriticalTimeout ? "true" : "false";
+  json += ",\"safe_mode_requested\":";
+  json += health.safeModeRequested ? "true" : "false";
+  json += ",\"failed_task\":\"";
+  json += TaskIdText(health.failedTaskId);
+  json += "\",\"failed_task_age_ticks\":";
+  json += health.failedTaskAgeTicks;
+  json += ",\"tasks\":[";
+  for (std::size_t index = 0U; index < mp::kTaskRegistryCapacity; ++index) {
+    const mp::TaskHealthEntry& task = health.taskSnapshot.entries[index];
+    if (index != 0U) {
+      json += ",";
+    }
+    json += "{\"id\":\"";
+    json += TaskIdText(task.id);
+    json += "\",\"name\":";
+    json += JsonQuoted(task.name);
+    json += ",\"registered\":";
+    json += task.isRegistered ? "true" : "false";
+    json += ",\"heartbeat\":";
+    json += task.hasHeartbeat ? "true" : "false";
+    json += ",\"last_tick\":";
+    json += task.lastHeartbeat;
+    json += "}";
+  }
+  json += "]}";
+  SendJson(200, json);
+}
+
+void HandleLogsRecent() {
+  mp::LogMsg logs[8] = {};
+  const std::size_t count = mp::Log_GetRecent(logs, 8U);
+  String json = JsonHeader(true, "OK", "recent logs");
+  json += ",\"logs\":[";
+  for (std::size_t index = 0U; index < count; ++index) {
+    if (index != 0U) {
+      json += ",";
+    }
+    json += "{\"tick\":";
+    json += logs[index].tickCount;
+    json += ",\"level\":";
+    json += static_cast<unsigned>(logs[index].level);
+    json += ",\"module\":";
+    json += JsonQuoted(logs[index].module);
+    json += ",\"text\":";
+    json += JsonQuoted(logs[index].text);
+    json += "}";
+  }
+  json += "]}";
+  SendJson(200, json);
+}
+
 void HandleSafeOff() {
   const mp::AppErrorCode result = mp::FactoryTest_SafeOff();
   if (result != mp::APP_OK) {
@@ -655,6 +1002,20 @@ void ConnectWifi() {
 void RegisterRoutes() {
   g_server.on("/api/v1/info", HTTP_GET, HandleInfo);
   g_server.on("/api/v1/status", HTTP_GET, HandleStatus);
+  g_server.on("/api/v1/sensors", HTTP_GET, HandleSensors);
+  g_server.on("/api/v1/battery", HTTP_GET, HandleBattery);
+  g_server.on("/api/v1/error", HTTP_GET, HandleErrorGet);
+  g_server.on("/api/v1/error/clear", HTTP_POST, HandleErrorClear);
+  g_server.on("/api/v1/params", HTTP_GET, HandleParamsGet);
+  g_server.on("/api/v1/params", HTTP_PATCH, HandleParamsPatch);
+  g_server.on("/api/v1/params/save", HTTP_POST, HandleParamsSave);
+  g_server.on("/api/v1/params/factory-reset", HTTP_POST,
+              HandleParamsFactoryReset);
+  g_server.on("/api/v1/self-test", HTTP_POST, HandleSelfTest);
+  g_server.on("/api/v1/reboot", HTTP_POST, HandleReboot);
+  g_server.on("/api/v1/safe-mode", HTTP_POST, HandleSafeMode);
+  g_server.on("/api/v1/health", HTTP_GET, HandleHealth);
+  g_server.on("/api/v1/logs/recent", HTTP_GET, HandleLogsRecent);
   g_server.on("/api/v1/safe-off", HTTP_POST, HandleSafeOff);
   g_server.on("/api/v1/print/files", HTTP_POST, HandlePrintFilesCreate);
   g_server.on("/api/v1/print/files", HTTP_GET, HandlePrintFilesList);
