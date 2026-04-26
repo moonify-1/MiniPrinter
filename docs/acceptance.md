@@ -18,6 +18,8 @@
 - SAFE_MODE 下 `PRINT_START` 必须返回 `NACK_SAFE_MODE`。
 - `MP_ENABLE_WDT=0` 时真实 Watchdog 不启用。
 - `MP_ENABLE_WDT=1` 时只有 MonitorTask 可以喂狗。
+- `python tools/api_client.py --help` 和 `python tools/api_client.py self-test` 必须可运行。
+- 正式打印文件上传和启动打印验收使用 WiFi API，不再以 UART `PRINT_LINE` 作为产品入口。
 
 ## 当前阶段非验收项
 
@@ -25,4 +27,4 @@
 - 不验收真实灰度/浓度控制。
 - 不验收量产级温度补偿曲线。
 - 不验收真实 NVS 参数 UI。
-- 不验收无线通信。
+- 不宣称真实设备 WiFi 联机已通过；联机、波形、电机方向和首次真实打印需要用户实测记录。

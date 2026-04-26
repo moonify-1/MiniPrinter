@@ -24,6 +24,15 @@
 - 使用 `python tools/send_frame.py status --port COMx` 读取状态。
 - 使用 `python tools/send_frame.py safe-off --port COMx` 验证 SAFE_OFF 可执行。
 - 使用 `python tools/send_frame.py sensor-test --port COMx` 验证 Sensor mock 快照可读取。
+- UART 只作为底层临时调试参考，正式打印文件上传、启动打印和控制验收应走 WiFi API。
+
+## WiFi API 主机侧测试
+
+- `python tools/api_client.py --help` 应正常显示命令列表。
+- `python tools/api_client.py self-test` 应在不连接设备的情况下完成本地分片和 CRC dry-run。
+- 设备启用 `MP_ENABLE_WIFI=1` 后，可用 `python tools/api_client.py --base http://<device-ip> info/status/sensors/battery` 查询状态。
+- 打印文件验收应使用 `tools/make_test_print.py` 生成 raw，再用 `tools/api_client.py upload` 上传，并用 `start/cancel/feed` 验证控制路径。
+- 真实工厂测试命令必须按文档阶段执行；失败时停止后续危险测试。
 
 ## Sensor mock 测试
 

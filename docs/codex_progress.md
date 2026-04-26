@@ -698,3 +698,23 @@
   - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
 - 下一步建议：
   - 执行 Task 14，补 WiFi API 主机侧测试脚本。
+
+## Step 43
+
+- 时间：2026-04-26 22:13:14
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 14：补 WiFi API 自动化测试和主机侧测试脚本
+- 结果：
+  - 新增 `tools/api_client.py`，使用 Python 标准库访问 `/api/v1` WiFi API。
+  - 覆盖 info/status/key/sensors/battery/error/params/health/logs/safe-off。
+  - 支持 raw 打印文件上传、分片 PUT、complete、按 `file_id` 启动打印、取消、走纸。
+  - 支持 motor-test、head-shift-test、head-stb-test 等工厂测试 API。
+  - `self-test` 为本地 dry-run，不访问设备，用于验证 raw 行宽、分片和 CRC32 逻辑。
+  - 更新 `docs/test_plan.md` 和 `docs/acceptance.md`，明确正式验收应以 WiFi API 为主。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `python tools/api_client.py --help` 通过。
+  - `python tools/api_client.py self-test` 通过。
+  - `python tools/make_test_print.py --help` 通过。
+- 下一步建议：
+  - 执行 Task 15，补真实硬件分阶段验收记录。
