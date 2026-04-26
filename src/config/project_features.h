@@ -28,6 +28,26 @@
 #define MP_ENABLE_WIFI 0
 #endif
 
+#ifndef MP_WIFI_SSID
+#define MP_WIFI_SSID ""
+#endif
+
+#ifndef MP_WIFI_PASSWORD
+#define MP_WIFI_PASSWORD ""
+#endif
+
+#ifndef MP_WIFI_AP_SSID
+#define MP_WIFI_AP_SSID "MiniPrinterRTOS"
+#endif
+
+#ifndef MP_WIFI_AP_PASSWORD
+#define MP_WIFI_AP_PASSWORD ""
+#endif
+
+#ifndef MP_WIFI_CONNECT_TIMEOUT_MS
+#define MP_WIFI_CONNECT_TIMEOUT_MS 5000
+#endif
+
 #ifndef MP_ENABLE_BLE
 #define MP_ENABLE_BLE 0
 #endif
@@ -41,5 +61,14 @@ constexpr bool FEATURE_HW_STEPPER = (MP_ENABLE_HW_STEPPER != 0);
 constexpr bool FEATURE_WDT = (MP_ENABLE_WDT != 0);
 constexpr bool FEATURE_WIFI = (MP_ENABLE_WIFI != 0);
 constexpr bool FEATURE_BLE = (MP_ENABLE_BLE != 0);
+
+// WiFi 是本项目正式控制面，但开发阶段默认不把 SSID/密码写进仓库。
+// 启用方法示例：
+// PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1 -DMP_WIFI_SSID=\"your_ssid\" -DMP_WIFI_PASSWORD=\"your_pass\""
+constexpr const char* WIFI_SSID = MP_WIFI_SSID;
+constexpr const char* WIFI_PASSWORD = MP_WIFI_PASSWORD;
+constexpr const char* WIFI_AP_SSID = MP_WIFI_AP_SSID;
+constexpr const char* WIFI_AP_PASSWORD = MP_WIFI_AP_PASSWORD;
+constexpr unsigned WIFI_CONNECT_TIMEOUT_MS = MP_WIFI_CONNECT_TIMEOUT_MS;
 
 }  // namespace mp

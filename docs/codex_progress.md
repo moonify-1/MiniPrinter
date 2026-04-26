@@ -464,3 +464,22 @@
   - 同步修正 `docs/需要补充的信息.md`，将 WiFi 待补充项改为连接方式、配置方式和 API 鉴权策略。
 - 下一步建议：
   - 下一步应优先执行 `docs/待办任务.md` 的 Task 01，建立 WiFi API 基础框架，再做打印文件上传和启动打印 API。
+
+## Step 30
+
+- 时间：2026-04-26 21:20:08
+- 状态：已完成
+- 对应任务：`docs/待办任务.md` Task 01：建立 WiFi API 基础框架
+- 结果：
+  - 新增 `src/services/wifi_api_service.h/.cpp`，作为 HTTP/JSON WiFi API 服务入口。
+  - 新增 `src/tasks/task_wifi_api.h/.cpp`，在 `MP_ENABLE_WIFI=1` 时创建 FreeRTOS 轮询任务；默认关闭时不占用任务栈。
+  - `src/config/project_features.h` 新增 WiFi STA/AP fallback 配置宏，仍然不把 SSID/密码写入仓库。
+  - `src/main.cpp` 接入 `TaskWifiApi_Create()`，保持业务逻辑不进入 `loop()`。
+  - 已实现最小 API：`GET /api/v1/info`、`GET /api/v1/status`、`POST /api/v1/safe-off`。
+  - API 返回统一 JSON 字段 `ok`、`code`、`message`，并明确 WiFi API 是正式产品控制面。
+  - 本阶段不实现打印文件上传，不开启真实热敏头或电机宏。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
+- 下一步建议：
+  - 执行 Task 02，新增打印文件 WiFi 上传服务，先只支持 384 点宽 raw 数据。

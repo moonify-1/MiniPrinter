@@ -24,6 +24,7 @@
 #include "tasks/task_protocol.h"
 #include "tasks/task_sensor.h"
 #include "tasks/task_system.h"
+#include "tasks/task_wifi_api.h"
 
 namespace {
 
@@ -136,6 +137,13 @@ void setup() {
   if (!mp::TaskProtocol_Create()) {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskProtocol_Create failed");
+    return;
+  }
+
+  // WiFi API 是正式产品控制面；默认宏关闭时该函数不创建任务。
+  if (!mp::TaskWifiApi_Create()) {
+    mp::Bsp_SetAllOutputsSafe();
+    Serial.println("ERROR: TaskWifiApi_Create failed");
     return;
   }
 

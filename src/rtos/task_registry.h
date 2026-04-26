@@ -22,6 +22,7 @@ enum class TaskId : std::uint8_t {
   SENSOR,       // 传感器采样任务。
   PARAM,        // 参数管理任务。
   COMM,         // 通信任务。
+  WIFI_API,     // WiFi HTTP/JSON API 任务，是正式产品控制面。
   METRICS,      // 指标统计任务。
   COUNT,        // 任务槽位总数，不是实际任务。
 };
