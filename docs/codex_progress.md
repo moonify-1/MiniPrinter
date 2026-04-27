@@ -846,3 +846,18 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 在 Apifox 中优先尝试导入 `miniprinterrtos.apifox.json`；如版本不兼容，改用 `miniprinterrtos.openapi.json`。
+
+## Step 51
+
+- 时间：2026-04-27 16:02:21
+- 状态：已完成
+- 对应任务：将当前调试 WiFi 修改为 `BCXLY-2.4G`
+- 结果：
+  - 更新 `src/config/project_config.h`，把 `MP_WIFI_SSID` 改为 `BCXLY-2.4G`。
+  - 更新 `MP_WIFI_PASSWORD` 为新的调试密码。
+  - 同步更新 `docs/项目启动说明.md` 中的当前调试 SSID。
+  - 未修改真实热敏头、电机、传感器等危险硬件宏。
+- 验证：
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 重新烧录后通过串口确认新的 `WiFi STA connected ip=...`，再更新 Apifox 环境里的 `baseUrl`。
