@@ -926,3 +926,22 @@
   - 本机可 ping 通 `192.168.1.168`，但当前 HTTP API 请求超时或连接被关闭；`platformio device list` 未发现明确 USB 烧录串口，因此本轮无法在本机完成实机刷写后的 HTTP 验证。
 - 下一步建议：
   - 重新烧录固件后，在 Apifox 从 Step 00 开始重跑，Step 03 应返回 `received_bytes=192`。
+
+## Step 56
+
+- 时间：2026-04-27 17:39:44
+- 状态：已完成
+- 对应任务：新增 Apifox 真实打印测试文件和逐步测试指导
+- 结果：
+  - 从 `docs/apifox/print_smoke_test.md` 的流程结构复制并改写出 `docs/apifox/真实打印测试.md`。
+  - 新增 `docs/apifox/payloads/print_real_moderate_48lines.bin`，作为 48 行、2304 bytes 的中等长度真实打印 raw 文件。
+  - 新增 `print_real_moderate_48lines_chunk_0.bin` 到 `print_real_moderate_48lines_chunk_4.bin`，按 WiFi API 的 512 bytes 分片规则供 Apifox Binary Body 上传。
+  - 文档中补齐 Step 00 到 Step 08 的 Method、URL、Path 参数、Query 参数、Body、Header、预期响应和真实打印观察项。
+  - 同步更新 `docs/wifi_api.md` 的 Apifox 文件清单和 `docs/项目结构.md` 的文件结构。
+- 验证：
+  - 重新读取完整 raw 文件，确认大小为 2304 bytes、48 行、CRC32/IEEE 为 `0x282EB33A`，十进制为 `674149178`。
+  - 重新读取 5 个分片，确认大小为 `[512, 512, 512, 512, 256]`，拼接后与完整 raw 文件完全一致。
+  - 生成时确认最大单 STB 组黑点数为 33，低于当前安全上限 64。
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 在 Apifox 打开 `docs/apifox/真实打印测试.md`，按文档依次上传 5 个分片；Step 04 看到 `actual_crc32=674149178` 后再启动真实打印。
