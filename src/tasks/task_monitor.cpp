@@ -16,7 +16,8 @@
 namespace {
 
 constexpr const char* kMonitorTaskName = "task_monitor";
-constexpr uint32_t kMonitorTaskStackWords = 1024U;
+// ESP32 Arduino 的 xTaskCreate() 栈大小参数按字节计算。
+constexpr uint32_t kMonitorTaskStackBytes = 4096U;
 constexpr UBaseType_t kMonitorTaskPriority = 2U;
 constexpr TickType_t kMonitorPeriodTicks = pdMS_TO_TICKS(100U);
 
@@ -188,7 +189,7 @@ bool TaskMonitor_Create() {
   }
 
   const BaseType_t createResult =
-      xTaskCreate(TaskMonitorMain, kMonitorTaskName, kMonitorTaskStackWords,
+      xTaskCreate(TaskMonitorMain, kMonitorTaskName, kMonitorTaskStackBytes,
                   nullptr, kMonitorTaskPriority, &g_monitorTaskHandle);
 
   if (createResult != pdPASS) {

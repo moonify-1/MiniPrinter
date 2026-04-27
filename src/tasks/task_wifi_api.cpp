@@ -11,7 +11,9 @@
 namespace {
 
 constexpr const char* kWifiApiTaskName = "task_wifi_api";
-constexpr std::uint32_t kWifiApiTaskStackWords = 4096U;
+// ESP32 Arduino 的 xTaskCreate() 栈大小参数按字节计算。
+// WebServer 处理 HTTP/JSON 时栈使用量高于普通轮询任务。
+constexpr std::uint32_t kWifiApiTaskStackBytes = 8192U;
 constexpr UBaseType_t kWifiApiTaskPriority = 1U;
 constexpr TickType_t kWifiApiPollTicks = pdMS_TO_TICKS(10U);
 
@@ -48,7 +50,7 @@ bool TaskWifiApi_Create() {
   }
 
   const BaseType_t createResult =
-      xTaskCreate(TaskWifiApiMain, kWifiApiTaskName, kWifiApiTaskStackWords,
+      xTaskCreate(TaskWifiApiMain, kWifiApiTaskName, kWifiApiTaskStackBytes,
                   nullptr, kWifiApiTaskPriority, &g_wifiApiTaskHandle);
 
   if (createResult != pdPASS) {

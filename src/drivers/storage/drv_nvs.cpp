@@ -18,7 +18,11 @@ Preferences g_preferences;
 namespace mp {
 
 bool DrvNvs_Init() {
-  if (!g_preferences.begin(kNvsNamespace, true)) {
+  // 第一次烧录时 NVS 里还没有 mp_param 命名空间。
+  // 如果这里用只读模式 begin(..., true)，Arduino Preferences 会打印
+  // nvs_open failed: NOT_FOUND，并且参数服务会误以为 NVS 不可用。
+  // 因此初始化阶段用读写模式打开一次，让命名空间被创建出来。
+  if (!g_preferences.begin(kNvsNamespace, false)) {
     return false;
   }
 

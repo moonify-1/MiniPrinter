@@ -793,3 +793,21 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 按 `docs/硬件分阶段验收记录.md` 做实物验收，不要跳过空载波形直接真实加热打印。
+
+## Step 48
+
+- 时间：2026-04-27 14:21:06
+- 状态：已完成
+- 对应任务：分析串口崩溃日志并修复启动重启循环
+- 结果：
+  - 确认 `ESP-ROM`、`rst`、`boot`、`load`、`entry` 是正常 ESP32-S3 ROM/bootloader 启动日志。
+  - 确认 `Stack canary watchpoint triggered (task_log)` 是异常，代表 `task_log` 栈溢出，是反复重启的直接原因。
+  - 将所有任务栈常量从 `StackWords` 语义修正为 `StackBytes`，并按 ESP32 Arduino `xTaskCreate()` 字节单位调大。
+  - `task_log`、`task_system`、`task_monitor`、`task_sensor`、`task_command`、`task_protocol`、`task_param` 调整为 4096 bytes。
+  - `task_print_engine` 和 `task_wifi_api` 调整为 8192 bytes。
+  - 修复 `DrvNvs_Init()` 第一次启动只读打开 NVS 命名空间导致 `NOT_FOUND` 的问题，改为初始化时创建命名空间。
+  - 更新 `docs/项目启动说明.md`，解释启动日志、Guru Meditation 和 NVS NOT_FOUND 的含义。
+- 验证：
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 重新烧录后观察串口是否不再出现 `Guru Meditation Error` 和重启循环。

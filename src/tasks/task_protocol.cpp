@@ -12,7 +12,8 @@
 namespace {
 
 constexpr const char* kProtocolTaskName = "task_protocol";
-constexpr std::uint32_t kProtocolTaskStackWords = 2048U;
+// ESP32 Arduino 的 xTaskCreate() 栈大小参数按字节计算。
+constexpr std::uint32_t kProtocolTaskStackBytes = 4096U;
 constexpr UBaseType_t kProtocolTaskPriority = 2U;
 constexpr TickType_t kProtocolPollPeriodTicks = pdMS_TO_TICKS(10U);
 constexpr std::uint8_t kMaxBytesPerCycle = 64U;
@@ -69,7 +70,7 @@ bool TaskProtocol_Create() {
   }
 
   const BaseType_t createResult =
-      xTaskCreate(TaskProtocolMain, kProtocolTaskName, kProtocolTaskStackWords,
+      xTaskCreate(TaskProtocolMain, kProtocolTaskName, kProtocolTaskStackBytes,
                   nullptr, kProtocolTaskPriority, &g_protocolTaskHandle);
 
   if (createResult != pdPASS) {

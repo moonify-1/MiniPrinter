@@ -11,7 +11,9 @@
 namespace {
 
 constexpr const char* kLogTaskName = "task_log";
-constexpr uint32_t kLogTaskStackWords = 1024U;
+// ESP32 Arduino 的 xTaskCreate() 栈大小参数按“字节”计算。
+// 日志任务会调用 Serial.print()，1024 bytes 会触发 stack canary。
+constexpr uint32_t kLogTaskStackBytes = 4096U;
 constexpr UBaseType_t kLogTaskPriority = 1U;
 constexpr TickType_t kLogQueueWaitTicks = pdMS_TO_TICKS(200U);
 constexpr TickType_t kHeartbeatPeriodTicks = pdMS_TO_TICKS(1000U);
@@ -90,7 +92,7 @@ bool TaskLog_Create() {
   }
 
   const BaseType_t createResult =
-      xTaskCreate(TaskLogMain, kLogTaskName, kLogTaskStackWords, nullptr,
+      xTaskCreate(TaskLogMain, kLogTaskName, kLogTaskStackBytes, nullptr,
                   kLogTaskPriority, &g_logTaskHandle);
 
   if (createResult != pdPASS) {

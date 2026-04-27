@@ -12,7 +12,8 @@
 namespace {
 
 constexpr const char* kSensorTaskName = "task_sensor";
-constexpr std::uint32_t kSensorTaskStackWords = 1024U;
+// ESP32 Arduino 的 xTaskCreate() 栈大小参数按字节计算。
+constexpr std::uint32_t kSensorTaskStackBytes = 4096U;
 constexpr UBaseType_t kSensorTaskPriority = 2U;
 constexpr TickType_t kSensorPeriodTicks = pdMS_TO_TICKS(50U);
 
@@ -50,7 +51,7 @@ bool TaskSensor_Create() {
   }
 
   const BaseType_t createResult =
-      xTaskCreate(TaskSensorMain, kSensorTaskName, kSensorTaskStackWords,
+      xTaskCreate(TaskSensorMain, kSensorTaskName, kSensorTaskStackBytes,
                   nullptr, kSensorTaskPriority, &g_sensorTaskHandle);
 
   if (createResult != pdPASS) {

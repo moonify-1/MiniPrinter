@@ -23,7 +23,9 @@
 namespace {
 
 constexpr const char* kPrintTaskName = "task_print_engine";
-constexpr std::uint32_t kPrintTaskStackWords = 3072U;
+// ESP32 Arduino 的 xTaskCreate() 栈大小参数按字节计算。
+// 打印任务会同时做安全计算、驱动调用和日志格式化，因此给更大的栈。
+constexpr std::uint32_t kPrintTaskStackBytes = 8192U;
 constexpr UBaseType_t kPrintTaskPriority = 2U;
 constexpr TickType_t kControlWaitTicks = pdMS_TO_TICKS(20U);
 constexpr TickType_t kLineWaitTicks = pdMS_TO_TICKS(20U);
@@ -459,7 +461,7 @@ bool TaskPrintEngine_Create() {
   }
 
   const BaseType_t createResult =
-      xTaskCreate(TaskPrintEngineMain, kPrintTaskName, kPrintTaskStackWords,
+      xTaskCreate(TaskPrintEngineMain, kPrintTaskName, kPrintTaskStackBytes,
                   nullptr, kPrintTaskPriority, &g_printTaskHandle);
 
   if (createResult != pdPASS) {

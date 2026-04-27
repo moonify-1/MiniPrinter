@@ -12,7 +12,8 @@
 namespace {
 
 constexpr const char* kParamTaskName = "task_param";
-constexpr std::uint32_t kParamTaskStackWords = 2048U;
+// ESP32 Arduino 的 xTaskCreate() 栈大小参数按字节计算。
+constexpr std::uint32_t kParamTaskStackBytes = 4096U;
 constexpr UBaseType_t kParamTaskPriority = 1U;
 constexpr TickType_t kParamQueueWaitTicks = pdMS_TO_TICKS(200U);
 constexpr TickType_t kSaveMergeDelayTicks = pdMS_TO_TICKS(2000U);
@@ -89,7 +90,7 @@ bool TaskParam_Create() {
   }
 
   const BaseType_t createResult =
-      xTaskCreate(TaskParamMain, kParamTaskName, kParamTaskStackWords, nullptr,
+      xTaskCreate(TaskParamMain, kParamTaskName, kParamTaskStackBytes, nullptr,
                   kParamTaskPriority, &g_paramTaskHandle);
 
   if (createResult != pdPASS) {
