@@ -1,0 +1,394 @@
+{
+  "info": {
+    "name": "MiniPrinterRTOS Apifox Print Smoke Test",
+    "_postman_id": "miniprinterrtos-print-smoke-test",
+    "description": "Import this Postman Collection into Apifox and run requests 00..07 in order. It uses the real firmware WiFi API to create a raw file, upload an octet-stream chunk, complete CRC validation, and start a print job.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 Safe off dangerous outputs",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/safe-off",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "safe-off"
+          ],
+          "query": []
+        },
+        "description": "Run the highest-priority safety API before a print smoke test. It turns VH/STB/motor outputs off."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"safe-off ok\", function () { pm.expect(json.ok).to.eql(true); pm.expect(json.code).to.eql(\"OK\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 Get device status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "status"
+          ],
+          "query": []
+        },
+        "description": "Check that the device is reachable and is not in SAFE_MODE before continuing."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"status ok\", function () { pm.expect(json.ok).to.eql(true); });",
+              "pm.test(\"not SAFE_MODE before print\", function () { pm.expect(json.system_state).to.not.eql(\"SAFE_MODE\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Create print file upload session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/print/files?size=192&crc32=0x30D148A2",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "print",
+            "files"
+          ],
+          "query": [
+            {
+              "key": "size",
+              "value": "192"
+            },
+            {
+              "key": "crc32",
+              "value": "0x30D148A2"
+            }
+          ]
+        },
+        "description": "Create a raw file upload slot. Payload is 192 bytes, 4 lines, 48 bytes/line, CRC32/IEEE 0x30D148A2 (819021986)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test(\"upload session created\", function () { pm.expect(json.ok).to.eql(true); pm.expect(json.file.state).to.eql(\"RECEIVING\"); });",
+              "pm.test(\"file metadata matches payload\", function () { pm.expect(json.file.total_bytes).to.eql(192); pm.expect(json.file.line_count).to.eql(4); });",
+              "pm.collectionVariables.set(\"file_id\", String(json.file.file_id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Upload binary chunk 0",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/octet-stream",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/print/files/{{file_id}}/chunks/0",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "print",
+            "files",
+            "{{file_id}}",
+            "chunks",
+            "0"
+          ],
+          "query": []
+        },
+        "description": "Body must be binary/file with Content-Type application/octet-stream. If Apifox does not keep the file path after import, select the payload file manually.",
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": "docs/apifox/payloads/print_smoke_low_density_4lines.bin"
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"chunk stored\", function () { pm.expect(json.ok).to.eql(true); pm.expect(json.file.received_bytes).to.eql(192); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Complete upload and verify CRC",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/print/files/{{file_id}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "print",
+            "files",
+            "{{file_id}}",
+            "complete"
+          ],
+          "query": []
+        },
+        "description": "Firmware checks received bytes, 48-byte line alignment, and CRC32. Only a COMPLETE file can be printed."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"file complete\", function () { pm.expect(json.ok).to.eql(true); pm.expect(json.file.state).to.eql(\"COMPLETE\"); });",
+              "pm.test(\"crc32 matches\", function () { pm.expect(json.file.actual_crc32).to.eql(819021986); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Start print job from file_id",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/print/jobs?file_id={{file_id}}&copies=1&density=50&heat=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "print",
+            "jobs"
+          ],
+          "query": [
+            {
+              "key": "file_id",
+              "value": "{{file_id}}"
+            },
+            {
+              "key": "copies",
+              "value": "1"
+            },
+            {
+              "key": "density",
+              "value": "50"
+            },
+            {
+              "key": "heat",
+              "value": "50"
+            }
+          ]
+        },
+        "description": "Start a print job. API v1 supports copies=1; density and heat are range-checked from 0 to 100."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 202\", function () { pm.response.to.have.status(202); });",
+              "const json = pm.response.json();",
+              "pm.test(\"print job queued\", function () { pm.expect(json.ok).to.eql(true); pm.expect(json.file_id).to.eql(Number(pm.collectionVariables.get(\"file_id\"))); pm.expect(json.line_total).to.eql(4); });",
+              "pm.collectionVariables.set(\"job_id\", String(json.job_id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Get current print job",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/print/jobs/current",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "print",
+            "jobs",
+            "current"
+          ],
+          "query": []
+        },
+        "description": "The job may move from QUEUED/PRINTING to DONE quickly, so this request validates the response shape and state enum."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"current job response ok\", function () { pm.expect(json.ok).to.eql(true); pm.expect(json.file_id).to.eql(Number(pm.collectionVariables.get(\"file_id\"))); });",
+              "pm.test(\"state is known\", function () { pm.expect([\"NONE\", \"RECEIVING\", \"QUEUED\", \"PRINTING\", \"PAUSED\", \"DONE\", \"CANCELLED\", \"FAILED\", \"UNKNOWN\"]).to.include(json.state); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 List uploaded print files",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/print/files",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "print",
+            "files"
+          ],
+          "query": []
+        },
+        "description": "Final upload-slot check. To free the slot manually, call DELETE /api/v1/print/files/{file_id}."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"file list ok\", function () { pm.expect(json.ok).to.eql(true); pm.expect(json.files).to.be.an(\"array\"); });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://10.178.73.177",
+      "type": "string"
+    },
+    {
+      "key": "file_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "job_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

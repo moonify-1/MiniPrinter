@@ -634,5 +634,8 @@ Query 参数：
 
 - `docs/apifox/miniprinterrtos.apifox.json`：Apifox 原生候选格式，按常见导出结构组织分组、接口、参数和响应模型。
 - `docs/apifox/miniprinterrtos.openapi.json`：OpenAPI 3.0.3 格式，Apifox 官方稳定支持导入；如果原生候选文件不能导入，请使用此文件，数据源格式选 `OpenAPI/Swagger`。
+- `docs/apifox/print_smoke_test.postman_collection.json`：打印冒烟测试集合，导入 Apifox 后按 `00..07` 顺序执行，会创建上传会话、上传 raw 分片、complete 校验并启动打印任务。
+- `docs/apifox/payloads/print_smoke_low_density_4lines.bin`：冒烟测试集合第 03 步使用的二进制 raw 打印文件，大小 192 bytes，CRC32/IEEE 为 `0x30D148A2`。
+- `docs/apifox/print_smoke_test.md`：打印冒烟测试说明，记录 Apifox 运行顺序、变量和预期返回。
 
 导入后建议创建环境变量：`baseUrl=http://10.178.73.177`，并按串口实际 IP 修改；各接口路径已经包含 `/api/v1` 前缀。

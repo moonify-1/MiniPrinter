@@ -874,3 +874,21 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 重新烧录后通过串口确认新的局域网 IP，并同步更新 Apifox 环境 `baseUrl`。
+
+## Step 53
+
+- 时间：2026-04-27 16:45:00
+- 状态：已完成
+- 对应任务：根据 `docs/wifi_api.md` 和当前固件实现生成 Apifox 打印测试文件
+- 结果：
+  - 新增 `docs/apifox/print_smoke_test.postman_collection.json`，作为可导入 Apifox 的打印冒烟测试集合。
+  - 新增 `docs/apifox/payloads/print_smoke_low_density_4lines.bin`，作为测试集合上传用 raw 二进制打印数据。
+  - 新增 `docs/apifox/print_smoke_test.md`，说明 Apifox 导入方式、请求顺序、二进制 Body 和期望校验。
+  - 测试文件按固件真实 API 组织：`safe-off -> status -> create file -> PUT chunk -> complete -> start job -> current job -> list files`。
+  - 测试 payload 为 4 行低密度 raw 图，大小 192 bytes，CRC32/IEEE 为 `0x30D148A2`。
+  - 同步更新 `docs/wifi_api.md`、`docs/项目结构.md` 和 `docx/项目结构.md`。
+- 验证：
+  - `python -m json.tool docs/apifox/print_smoke_test.postman_collection.json` 通过。
+  - 重新读取 payload，确认大小为 192 bytes，CRC32/IEEE 为 `0x30D148A2`。
+- 下一步建议：
+  - 在 Apifox 导入测试集合后，把 `baseUrl` 改成串口日志中的设备 IP，再按 `00..07` 顺序执行。
