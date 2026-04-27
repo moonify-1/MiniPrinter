@@ -907,3 +907,22 @@
   - 已读回检查文档内容，确认覆盖 `00..07` 全流程和常见失败原因。
 - 下一步建议：
   - 用户按文档在 Apifox 中重新执行 Step 03，确认 `received_bytes=192` 后再执行 Step 04。
+
+## Step 55
+
+- 时间：2026-04-27 17:17:18
+- 状态：已完成
+- 对应任务：修复 WiFi API 二进制 chunk 上传遇到 `0x00` 被截断的问题
+- 结果：
+  - 修改 `src/services/wifi_api_service.cpp`，为 `/api/v1/print/files/{file_id}/chunks/{index}` 注册 `UriBraces` 动态路由和 raw body 回调。
+  - 新增固定 `RawBodyBuffer`，使用 `HTTPRaw.buf/currentSize` 收集真实字节流，不再用 `g_server.arg("plain")` 和 `String` 读取二进制 Body。
+  - `HandlePrintFileChunk()` 现在把完整 raw body 写入 `PrintFileService_WriteChunk()`，可正确处理包含 `0x00` 的 raw 打印数据。
+  - 同步修复 `POST /api/v1/factory/head-shift-test` 的 raw body 读取方式，避免 48 字节测试行中含 `0x00` 时被截断。
+  - 更新 `docs/apifox/print_smoke_test.md`，说明如果仍看到 `received_bytes=1`，需要重新烧录修复后的固件。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `python tools/api_client.py self-test` 通过。
+  - 重新计算 `docs/apifox/payloads/print_smoke_low_density_4lines.bin`，确认大小 192 bytes、CRC32/IEEE `0x30D148A2`、包含 144 个 `0x00` 字节，首个 `0x00` 位于索引 1。
+  - 本机可 ping 通 `192.168.1.168`，但当前 HTTP API 请求超时或连接被关闭；`platformio device list` 未发现明确 USB 烧录串口，因此本轮无法在本机完成实机刷写后的 HTTP 验证。
+- 下一步建议：
+  - 重新烧录固件后，在 Apifox 从 Step 00 开始重跑，Step 03 应返回 `received_bytes=192`。

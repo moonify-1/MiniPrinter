@@ -213,6 +213,14 @@ total_bytes    = 192
 
 如果 `received_bytes` 不是 `192`，不要执行 Step 04，先重新检查 Body 是否真的选择了 Binary 文件。
 
+如果你已经确认 Apifox 选择了 `.bin` 文件，但仍然看到：
+
+```json
+"received_bytes": 1
+```
+
+说明设备大概率还在运行旧固件。旧固件会把 `application/octet-stream` 当字符串读取，遇到 raw 文件里的 `0x00` 字节就截断。重新烧录包含 Step 55 修复的固件后，再从 Step 00 开始重试。
+
 ## 7. Step 04：完成上传并校验 CRC
 
 ### 作用

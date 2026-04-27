@@ -6,6 +6,7 @@
 #include <Arduino.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <uri/UriBraces.h>
 
 #include <cstring>
 
@@ -32,6 +33,19 @@ bool g_started = false;
 std::uint32_t g_nextWifiJobId = 1U;
 std::uint32_t g_currentWifiJobId = 0U;
 std::uint32_t g_currentWifiFileId = 0U;
+
+// Arduino WebServer 只有在路由注册了 raw 回调时，
+// 才会把 application/octet-stream 按真实字节流交给业务代码。
+// 这里用一个固定缓冲保存当前请求体，避免把二进制数据放进 String。
+struct RawBodyBuffer {
+  std::uint8_t data[mp::PRINT_FILE_MAX_BYTES];
+  std::uint32_t len;
+  bool valid;
+  bool overflow;
+  bool aborted;
+};
+
+RawBodyBuffer g_rawBody = {};
 
 void SendJson(int status, const String& json);
 
@@ -227,6 +241,70 @@ bool RequireNotSafeMode(const char* action) {
 void SendJson(int status, const String& json) {
   MarkApiConnected();
   g_server.send(status, "application/json", json);
+}
+
+void ResetRawBody() {
+  g_rawBody.len = 0U;
+  g_rawBody.valid = false;
+  g_rawBody.overflow = false;
+  g_rawBody.aborted = false;
+}
+
+void HandleRawBody() {
+  HTTPRaw& raw = g_server.raw();
+
+  if (raw.status == RAW_START) {
+    ResetRawBody();
+    return;
+  }
+
+  if (raw.status == RAW_ABORTED) {
+    g_rawBody.aborted = true;
+    g_rawBody.valid = false;
+    return;
+  }
+
+  if (raw.status == RAW_WRITE) {
+    if (raw.currentSize >
+        (mp::PRINT_FILE_MAX_BYTES - g_rawBody.len)) {
+      g_rawBody.overflow = true;
+      return;
+    }
+
+    std::memcpy(&g_rawBody.data[g_rawBody.len], raw.buf, raw.currentSize);
+    g_rawBody.len += static_cast<std::uint32_t>(raw.currentSize);
+    return;
+  }
+
+  if (raw.status == RAW_END) {
+    g_rawBody.valid = !g_rawBody.overflow && !g_rawBody.aborted;
+  }
+}
+
+bool RequireRawBody() {
+  if (g_rawBody.aborted) {
+    SendErrorJson(400, "BAD_REQUEST", "raw body upload was aborted",
+                  mp::ERR_COMM_CRC);
+    ResetRawBody();
+    return false;
+  }
+
+  if (g_rawBody.overflow) {
+    SendErrorJson(400, "BAD_REQUEST", "raw body is too large",
+                  mp::ERR_COMM_FRAME_TOO_LONG);
+    ResetRawBody();
+    return false;
+  }
+
+  if (!g_rawBody.valid || g_rawBody.len == 0U) {
+    SendErrorJson(400, "BAD_REQUEST",
+                  "application/octet-stream binary body is required",
+                  mp::ERR_COMM_CRC);
+    ResetRawBody();
+    return false;
+  }
+
+  return true;
 }
 
 bool ParseU32Text(const String& text, std::uint32_t* out) {
@@ -597,10 +675,13 @@ void HandlePrintFilesList() {
 }
 
 void HandlePrintFileChunk(std::uint32_t fileId, std::uint32_t index) {
-  const String body = g_server.arg("plain");
+  if (!RequireRawBody()) {
+    return;
+  }
+
   const mp::AppErrorCode result = mp::PrintFileService_WriteChunk(
-      fileId, index, reinterpret_cast<const std::uint8_t*>(body.c_str()),
-      static_cast<std::uint32_t>(body.length()));
+      fileId, index, g_rawBody.data, g_rawBody.len);
+  ResetRawBody();
   if (result != mp::APP_OK) {
     SendErrorJson(400, "PRINT_FILE_CHUNK_FAILED",
                   "chunk rejected by upload service", result);
@@ -614,6 +695,20 @@ void HandlePrintFileChunk(std::uint32_t fileId, std::uint32_t index) {
   json += PrintFileJson(snapshot);
   json += "}";
   SendJson(200, json);
+}
+
+void HandlePrintFileChunkRoute() {
+  std::uint32_t fileId = 0U;
+  std::uint32_t chunkIndex = 0U;
+  if (!ParseU32Text(g_server.pathArg(0), &fileId) ||
+      !ParseU32Text(g_server.pathArg(1), &chunkIndex)) {
+    SendErrorJson(400, "BAD_REQUEST", "invalid file_id or chunk index",
+                  mp::ERR_COMM_CRC);
+    ResetRawBody();
+    return;
+  }
+
+  HandlePrintFileChunk(fileId, chunkIndex);
 }
 
 void HandlePrintFileComplete(std::uint32_t fileId) {
@@ -1045,13 +1140,17 @@ void HandleLogsRecent() {
 
 void HandleFactoryHeadShiftTest() {
   if (!RequireNotSafeMode("head shift test is blocked in SAFE_MODE")) {
+    ResetRawBody();
     return;
   }
 
-  const String body = g_server.arg("plain");
+  if (!RequireRawBody()) {
+    return;
+  }
+
   const mp::AppErrorCode result = mp::FactoryTest_HeadShiftTest(
-      reinterpret_cast<const std::uint8_t*>(body.c_str()),
-      static_cast<std::size_t>(body.length()));
+      g_rawBody.data, static_cast<std::size_t>(g_rawBody.len));
+  ResetRawBody();
   if (result != mp::APP_OK) {
     SendErrorJson(400, "HEAD_SHIFT_TEST_FAILED",
                   "body must be exactly 48 raw bytes; hardware macro required",
@@ -1252,6 +1351,8 @@ void RegisterRoutes() {
   g_server.on("/api/v1/safe-off", HTTP_POST, HandleSafeOff);
   g_server.on("/api/v1/print/files", HTTP_POST, HandlePrintFilesCreate);
   g_server.on("/api/v1/print/files", HTTP_GET, HandlePrintFilesList);
+  g_server.on(UriBraces("/api/v1/print/files/{}/chunks/{}"), HTTP_PUT,
+              HandlePrintFileChunkRoute, HandleRawBody);
   g_server.on("/api/v1/print/jobs", HTTP_POST, HandlePrintJobCreate);
   g_server.on("/api/v1/print/jobs/current", HTTP_GET, HandlePrintJobCurrent);
   g_server.on("/api/v1/print/jobs/current/cancel", HTTP_POST,
@@ -1260,7 +1361,7 @@ void RegisterRoutes() {
   g_server.on("/api/v1/factory/motor-test", HTTP_POST,
               HandleFactoryMotorTest);
   g_server.on("/api/v1/factory/head-shift-test", HTTP_POST,
-              HandleFactoryHeadShiftTest);
+              HandleFactoryHeadShiftTest, HandleRawBody);
   g_server.on("/api/v1/factory/head-stb-test", HTTP_POST,
               HandleFactoryHeadStbTest);
   g_server.onNotFound(HandleNotFound);
