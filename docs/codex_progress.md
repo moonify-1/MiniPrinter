@@ -892,3 +892,18 @@
   - 重新读取 payload，确认大小为 192 bytes，CRC32/IEEE 为 `0x30D148A2`。
 - 下一步建议：
   - 在 Apifox 导入测试集合后，把 `baseUrl` 改成串口日志中的设备 IP，再按 `00..07` 顺序执行。
+
+## Step 54
+
+- 时间：2026-04-27 17:01:20
+- 状态：已完成
+- 对应任务：补全 Apifox 打印冒烟测试文档的逐步参数说明
+- 结果：
+  - 重写 `docs/apifox/print_smoke_test.md`，从概览说明扩展为可手工照填的 Apifox 操作文档。
+  - 每一步都补齐 Method、URL、Path 参数、Query 参数、Body、Header 和成功响应重点。
+  - 重点补充 Step 02 的 `size=192`、`crc32=0x30D148A2`，Step 03 的 `index=0` 和 Binary 文件 Body，Step 04 的 complete 校验要求。
+  - 增加 `PRINT_FILE_COMPLETE_FAILED` 的排查方式，要求先看 `received_bytes` 是否等于 `192`。
+- 验证：
+  - 已读回检查文档内容，确认覆盖 `00..07` 全流程和常见失败原因。
+- 下一步建议：
+  - 用户按文档在 Apifox 中重新执行 Step 03，确认 `received_bytes=192` 后再执行 Step 04。
