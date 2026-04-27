@@ -811,3 +811,19 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 重新烧录后观察串口是否不再出现 `Guru Meditation Error` 和重启循环。
+
+## Step 49
+
+- 时间：2026-04-27 14:37:42
+- 状态：已完成
+- 对应任务：将当前调试 WiFi 配置写入项目，减少每次烧录时的命令行硬编码
+- 结果：
+  - 新增 `src/config/project_config.h`，通过项目配置覆盖入口启用 `MP_ENABLE_WIFI=1`。
+  - 写入当前调试热点 `IQOO10`、连接密码和 `15000ms` 连接超时。
+  - 保持真实热敏头、电机、传感器等危险硬件宏关闭，普通调试固件仍不会真实加热或走纸。
+  - 更新 `docs/项目启动说明.md`，说明现在可直接 `python -m platformio run -t upload` 烧录 WiFi API 固件。
+  - 同步更新 `docs/项目结构.md` 和 `docx/项目结构.md`，记录新增配置文件。
+- 验证：
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 烧录后用串口确认 `WiFi STA connected ip=...`，再用 Apifox 访问 `/api/v1/info`。
