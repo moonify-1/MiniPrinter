@@ -12,5 +12,5 @@
 // 注意：这里不启用真实热敏头、电机、传感器宏，避免普通调试固件误加热或误走纸。
 #define MP_ENABLE_WIFI 1
 #define MP_WIFI_SSID "BCXLY-2.4G"
-#define MP_WIFI_PASSWORD "BCXYL000"
+#define MP_WIFI_PASSWORD "BCXLY000"
 #define MP_WIFI_CONNECT_TIMEOUT_MS 15000

@@ -861,3 +861,16 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 重新烧录后通过串口确认新的 `WiFi STA connected ip=...`，再更新 Apifox 环境里的 `baseUrl`。
+
+## Step 52
+
+- 时间：2026-04-27 16:07:56
+- 状态：已完成
+- 对应任务：纠正 `BCXLY-2.4G` 调试 WiFi 密码
+- 结果：
+  - 更新 `src/config/project_config.h`，将 `MP_WIFI_PASSWORD` 修正为用户确认的密码。
+  - 未修改 SSID、连接超时或任何真实硬件功能宏。
+- 验证：
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 重新烧录后通过串口确认新的局域网 IP，并同步更新 Apifox 环境 `baseUrl`。
