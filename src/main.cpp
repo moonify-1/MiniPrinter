@@ -27,30 +27,32 @@
 #include "tasks/task_system.h"
 #include "tasks/task_wifi_api.h"
 
-namespace {
+namespace
+{
 
-// 这些常量只用于最小编译验证：
-// 1. 证明 common / config / bsp / rtos / services / tasks 层头文件可正常包含。
-// 2. 证明参数块、RTOS 对象、日志服务和任务注册表类型可参与编译。
-// 3. 不引入业务流程，主循环仍保持空实现。
-const mp::SystemState kSystemStateBuildCheck = mp::SystemState::BOOT;
-const mp::PrintJobState kPrintJobStateBuildCheck = mp::PrintJobState::NONE;
-const mp::SensorValidity kSensorValidityBuildCheck = mp::SensorValidity::VALID;
-const mp::LogLevel kLogLevelBuildCheck = mp::LogLevel::INFO;
-const mp::AppErrorCode kErrorCodeBuildCheck = mp::APP_OK;
-const mp::ParamBlock kParamBlockBuildCheck = mp::DEFAULT_PARAM_BLOCK;
-const bool kFeatureBuildCheck = mp::FEATURE_HW_THERMAL_HEAD ||
-                                mp::FEATURE_HW_STEPPER || mp::FEATURE_WDT ||
-                                mp::FEATURE_WIFI || mp::FEATURE_BLE;
-const std::uint16_t kPrintDotsBuildCheck = mp::PRINT_DOTS_PER_LINE;
-const std::uint16_t kHeatDotsBuildCheck =
-    mp::SAFETY_MAX_SIMULTANEOUS_HEAT_DOTS;
-const std::size_t kTaskRegistryCapacityBuildCheck = mp::kTaskRegistryCapacity;
-const mp::RtosObjects* kRtosObjectsBuildCheck = &mp::g_rtos;
+  // 这些常量只用于最小编译验证：
+  // 1. 证明 common / config / bsp / rtos / services / tasks 层头文件可正常包含。
+  // 2. 证明参数块、RTOS 对象、日志服务和任务注册表类型可参与编译。
+  // 3. 不引入业务流程，主循环仍保持空实现。
+  const mp::SystemState kSystemStateBuildCheck = mp::SystemState::BOOT;
+  const mp::PrintJobState kPrintJobStateBuildCheck = mp::PrintJobState::NONE;
+  const mp::SensorValidity kSensorValidityBuildCheck = mp::SensorValidity::VALID;
+  const mp::LogLevel kLogLevelBuildCheck = mp::LogLevel::INFO;
+  const mp::AppErrorCode kErrorCodeBuildCheck = mp::APP_OK;
+  const mp::ParamBlock kParamBlockBuildCheck = mp::DEFAULT_PARAM_BLOCK;
+  const bool kFeatureBuildCheck = mp::FEATURE_HW_THERMAL_HEAD ||
+                                  mp::FEATURE_HW_STEPPER || mp::FEATURE_WDT ||
+                                  mp::FEATURE_WIFI || mp::FEATURE_BLE;
+  const std::uint16_t kPrintDotsBuildCheck = mp::PRINT_DOTS_PER_LINE;
+  const std::uint16_t kHeatDotsBuildCheck =
+      mp::SAFETY_MAX_SIMULTANEOUS_HEAT_DOTS;
+  const std::size_t kTaskRegistryCapacityBuildCheck = mp::kTaskRegistryCapacity;
+  const mp::RtosObjects *kRtosObjectsBuildCheck = &mp::g_rtos;
 
-}  // namespace
+} // namespace
 
-void setup() {
+void setup()
+{
   // 安全输出必须是 setup() 里最早执行的动作。
   mp::Bsp_PreInitSafeOutputs();
 
@@ -74,13 +76,15 @@ void setup() {
   mp::Bsp_Init();
 
   // 先建立 RTOS 对象，再初始化日志系统。
-  if (!mp::Rtos_CreateObjects()) {
+  if (!mp::Rtos_CreateObjects())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: Rtos_CreateObjects failed");
     return;
   }
 
-  if (!mp::PrintSpooler_Init()) {
+  if (!mp::PrintSpooler_Init())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: PrintSpooler_Init failed");
     return;
@@ -94,63 +98,72 @@ void setup() {
   mp::Health_Init();
 
   // 创建日志任务失败时，不继续进入后续流程。
-  if (!mp::TaskLog_Create()) {
+  if (!mp::TaskLog_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskLog_Create failed");
     return;
   }
 
   // SystemTask 先于 MonitorTask 创建，避免监控任务过早检查到“未注册”假超时。
-  if (!mp::TaskSystem_Create()) {
+  if (!mp::TaskSystem_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskSystem_Create failed");
     return;
   }
 
   // SensorTask 先于 MonitorTask 创建，避免关键任务尚未注册就被判定超时。
-  if (!mp::TaskSensor_Create()) {
+  if (!mp::TaskSensor_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskSensor_Create failed");
     return;
   }
 
   // 参数任务低优先级运行，只负责延迟合并保存请求。
-  if (!mp::TaskParam_Create()) {
+  if (!mp::TaskParam_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskParam_Create failed");
     return;
   }
 
   // PrintEngineTask 当前只跑 mock 打印流程，必须先于 MonitorTask 创建并上报心跳。
-  if (!mp::TaskPrintEngine_Create()) {
+  if (!mp::TaskPrintEngine_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskPrintEngine_Create failed");
     return;
   }
 
   // CommandTask 先启动，保证 ProtocolTask 收到完整帧后有消费者。
-  if (!mp::TaskCommand_Create()) {
+  if (!mp::TaskCommand_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskCommand_Create failed");
     return;
   }
 
   // ProtocolTask 当前使用 Serial 简单轮询，后续可替换为 DMA / ring buffer。
-  if (!mp::TaskProtocol_Create()) {
+  if (!mp::TaskProtocol_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskProtocol_Create failed");
     return;
   }
 
   // WiFi API 是正式产品控制面；默认宏关闭时该函数不创建任务。
-  if (!mp::TaskWifiApi_Create()) {
+  if (!mp::TaskWifiApi_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskWifiApi_Create failed");
     return;
   }
 
   // 监控任务优先级高于日志任务，负责关键任务心跳检查。
-  if (!mp::TaskMonitor_Create()) {
+  if (!mp::TaskMonitor_Create())
+  {
     mp::Bsp_SetAllOutputsSafe();
     Serial.println("ERROR: TaskMonitor_Create failed");
     return;
@@ -160,6 +173,7 @@ void setup() {
   mp::Log_Info("main", "Async log ready");
 }
 
-void loop() {
+void loop()
+{
   // Step 17 仍然只保留最小主循环，不在 loop() 里写业务逻辑。
 }
