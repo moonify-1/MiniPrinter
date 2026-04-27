@@ -733,3 +733,24 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 等用户按文档完成真实设备逐阶段实测记录。
+
+## Step 45
+
+- 时间：2026-04-27 10:19:24
+- 状态：已完成
+- 对应任务：结合 `项目背景/` 真实硬件资料，核对当前代码是否匹配，并更新 `docs/项目情况.md`
+- 结果：
+  - 重新核对 `项目背景/` 下 JX-2R-01 机芯规格书、BOM、原理图、DRV8833、IP2326、TPS563200 和 ESP32 GPIO 映射整理。
+  - 更新 `docs/项目情况.md`，明确当前结论：软件架构与真实硬件方向匹配，但真实稳定打印仍缺少 WiFi 联机、GPIO 波形、传感器校准、电机方向和低密度短行打印验证。
+  - 在项目情况中列出当前已有功能：安全启动、RTOS 任务、GPIO 映射、WiFi API、UART 兼容协议、打印文件上传、打印执行链路、传感器/电池/按键、安全策略、参数/NVS 和主机侧工具。
+  - 标出未完全匹配项：`PAPER_N`、`TM1`、`BAT_STAT`、真实热敏头、真实步进电机、电池 ADC 校准、WiFi 实机验收和固件侧自动化测试。
+  - 同步修正 `docs/项目结构.md` 和 `docx/项目结构.md` 中对 `docs/项目情况.md` 与下一步建议的描述。
+- 验证：
+  - `python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_WIFI=1" python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_SENSORS=1" python -m platformio run` 通过。
+  - `PLATFORMIO_BUILD_FLAGS="-DMP_ENABLE_HW_THERMAL_HEAD=1 -DMP_ENABLE_HW_STEPPER=1" python -m platformio run` 通过。
+  - `python tools/api_client.py self-test` 通过。
+  - `python tools/make_test_print.py --help` 通过。
+- 下一步建议：
+  - 按 `docs/硬件分阶段验收记录.md` 先填写 WiFi API 联机、安全态、sensors、battery 和 safe-off 实测结果。
