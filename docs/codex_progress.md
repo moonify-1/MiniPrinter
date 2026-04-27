@@ -754,3 +754,26 @@
   - `python tools/make_test_print.py --help` 通过。
 - 下一步建议：
   - 按 `docs/硬件分阶段验收记录.md` 先填写 WiFi API 联机、安全态、sensors、battery 和 safe-off 实测结果。
+
+## Step 46
+
+- 时间：2026-04-27 10:48:59
+- 状态：已完成
+- 对应任务：创建 `docs/项目启动说明.md`，说明当前项目使用方式、如何开始打印、如何传输文件
+- 结果：
+  - 新增 `docs/项目启动说明.md`。
+  - 明确当前正式控制面是 WiFi API，UART/串口只用于烧录、日志和临时底层调试。
+  - 写清楚 `MP_ENABLE_WIFI=1` 编译烧录方式、AP fallback 和局域网 STA 两种启动方式。
+  - 写清楚 raw 打印文件格式：384 点宽、48 字节/行、文件大小必须为 48 的整数倍、当前最大 3072 bytes。
+  - 写清楚文件传输流程：生成 raw -> `upload` 创建会话和分片上传 -> `complete` 校验 CRC32 -> 取得 `file_id`。
+  - 写清楚启动打印流程：`start <file_id>`，以及 `status`、`cancel`、`safe-off` 等常用命令。
+  - 区分 mock 打印和真实打印，强调真实打印必须先完成安全态、shift/latch、STB、电机和低密度短行验证。
+  - 同步更新 `docs/项目结构.md` 和 `docx/项目结构.md`。
+- 验证：
+  - `python tools/api_client.py self-test` 通过。
+  - `python tools/api_client.py upload --help` 通过。
+  - `python tools/api_client.py start --help` 通过。
+  - `python tools/make_test_print.py --pattern low_density_black --lines 4 -o <temp> --summary` 通过，输出文件为 192 bytes。
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 按新文档先跑 mock 打印闭环，再进入真实硬件分阶段验收。
