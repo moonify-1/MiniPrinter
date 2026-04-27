@@ -827,3 +827,22 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 烧录后用串口确认 `WiFi STA connected ip=...`，再用 Apifox 访问 `/api/v1/info`。
+
+## Step 50
+
+- 时间：2026-04-27 15:02:00
+- 状态：已完成
+- 对应任务：整理完整 WiFi API 文档，并生成 Apifox 可导入数据源
+- 结果：
+  - 以 `src/services/wifi_api_service.cpp` 为准重写 `docs/wifi_api.md`。
+  - 文档覆盖当前 29 个 HTTP API，包括路径、方法、path/query/body 参数、成功返回结构、常见错误和限制。
+  - 新增 `docs/apifox/miniprinterrtos.apifox.json`，作为 Apifox 原生候选导入文件。
+  - 新增 `docs/apifox/miniprinterrtos.openapi.json`，作为 Apifox 稳定支持的 OpenAPI/Swagger 兜底导入文件。
+  - 同步更新 `docs/项目结构.md` 和 `docx/项目结构.md`，记录新增 `docs/apifox/` 目录。
+- 验证：
+  - `python -m json.tool docs/apifox/miniprinterrtos.apifox.json` 通过。
+  - `python -m json.tool docs/apifox/miniprinterrtos.openapi.json` 通过。
+  - 源码路由、`docs/wifi_api.md` 和 OpenAPI 路径覆盖检查通过，均为 29 个接口。
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 在 Apifox 中优先尝试导入 `miniprinterrtos.apifox.json`；如版本不兼容，改用 `miniprinterrtos.openapi.json`。

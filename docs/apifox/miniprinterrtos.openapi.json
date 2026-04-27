@@ -1,0 +1,3351 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MiniPrinterRTOS WiFi API",
+    "version": "1.0.0",
+    "description": "MiniPrinterRTOS 固件 HTTP/JSON 控制接口。"
+  },
+  "servers": [
+    {
+      "url": "http://10.178.73.177",
+      "description": "当前串口日志中的开发设备地址"
+    },
+    {
+      "url": "http://192.168.4.1",
+      "description": "AP fallback 默认地址"
+    }
+  ],
+  "tags": [
+    {
+      "name": "System"
+    },
+    {
+      "name": "Sensors"
+    },
+    {
+      "name": "Errors & Logs"
+    },
+    {
+      "name": "Params"
+    },
+    {
+      "name": "Print Files"
+    },
+    {
+      "name": "Print Jobs"
+    },
+    {
+      "name": "Factory Tests"
+    }
+  ],
+  "paths": {
+    "/api/v1/info": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "获取设备信息",
+        "description": "返回设备名、API 前缀和编译功能开关。",
+        "operationId": "GET_api_v1_info",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取设备信息",
+        "x-apifox-folder": "System",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "获取整机状态",
+        "description": "返回系统状态、打印状态、传感器摘要、按键和错误摘要。",
+        "operationId": "GET_api_v1_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取整机状态",
+        "x-apifox-folder": "System",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/key": {
+      "get": {
+        "tags": [
+          "Sensors"
+        ],
+        "summary": "获取按键状态",
+        "description": "返回 G_KEY 原始电平、按下状态和最近短按/长按事件。",
+        "operationId": "GET_api_v1_key",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取按键状态",
+        "x-apifox-folder": "Sensors",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/sensors": {
+      "get": {
+        "tags": [
+          "Sensors"
+        ],
+        "summary": "获取传感器快照",
+        "description": "返回纸张、温度、电池、电机故障和读数有效性。",
+        "operationId": "GET_api_v1_sensors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取传感器快照",
+        "x-apifox-folder": "Sensors",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/battery": {
+      "get": {
+        "tags": [
+          "Sensors"
+        ],
+        "summary": "获取电池状态",
+        "description": "返回电池电压、低电压事件位、充电状态和读数有效性。",
+        "operationId": "GET_api_v1_battery",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取电池状态",
+        "x-apifox-folder": "Sensors",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/error": {
+      "get": {
+        "tags": [
+          "Errors & Logs"
+        ],
+        "summary": "获取最近错误",
+        "description": "返回最近一次错误事件。",
+        "operationId": "GET_api_v1_error",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorGetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取最近错误",
+        "x-apifox-folder": "Errors & Logs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/error/clear": {
+      "post": {
+        "tags": [
+          "Errors & Logs"
+        ],
+        "summary": "清除可恢复错误",
+        "description": "清除可恢复错误并返回最新错误事件。",
+        "operationId": "POST_api_v1_error_clear",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorGetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "清除可恢复错误",
+        "x-apifox-folder": "Errors & Logs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/params": {
+      "get": {
+        "tags": [
+          "Params"
+        ],
+        "summary": "获取参数",
+        "description": "返回当前参数快照。",
+        "operationId": "GET_api_v1_params",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParamsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取参数",
+        "x-apifox-folder": "Params",
+        "x-apifox-status": "developing"
+      },
+      "patch": {
+        "tags": [
+          "Params"
+        ],
+        "summary": "修改参数 RAM 副本",
+        "description": "通过 query 参数修改白名单字段，只更新 RAM，不自动保存到 NVS。",
+        "operationId": "PATCH_api_v1_params",
+        "parameters": [
+          {
+            "name": "max_heat_dots",
+            "in": "query",
+            "required": false,
+            "description": "1..64，最大同时加热点数",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "temp_stop_c",
+            "in": "query",
+            "required": false,
+            "description": "40..80，停止加热温度",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "temp_resume_c",
+            "in": "query",
+            "required": false,
+            "description": "30..70，必须小于 temp_stop_c",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "heat_start_us",
+            "in": "query",
+            "required": false,
+            "description": "1..800，初始热脉冲",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "heat_max_us",
+            "in": "query",
+            "required": false,
+            "description": "heat_start_us..800，最大热脉冲",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "forbid_heat_paper_missing",
+            "in": "query",
+            "required": false,
+            "description": "0/1，缺纸禁止加热",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "forbid_heat_low_voltage",
+            "in": "query",
+            "required": false,
+            "description": "0/1，低电压禁止加热",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "forbid_fast_motor_low_voltage",
+            "in": "query",
+            "required": false,
+            "description": "0/1，低电压禁止高速电机",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "steps_per_line",
+            "in": "query",
+            "required": false,
+            "description": "1..8，每行走纸整步数",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "start_interval_us",
+            "in": "query",
+            "required": false,
+            "description": "1000..20000，起步相位间隔",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "run_interval_us",
+            "in": "query",
+            "required": false,
+            "description": "1000..20000，常速相位间隔；需 <= start_interval_us",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "fast_interval_us",
+            "in": "query",
+            "required": false,
+            "description": "1000..20000，快速相位间隔；需 <= run_interval_us",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "max_frame_length",
+            "in": "query",
+            "required": false,
+            "description": "64..PROTO_MAX_FRAME_SIZE，UART 协议最大帧长",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParamsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "修改参数 RAM 副本",
+        "x-apifox-folder": "Params",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/params/save": {
+      "post": {
+        "tags": [
+          "Params"
+        ],
+        "summary": "保存参数",
+        "description": "请求 ParamTask 延迟保存当前参数。",
+        "operationId": "POST_api_v1_params_save",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "保存参数",
+        "x-apifox-folder": "Params",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/params/factory-reset": {
+      "post": {
+        "tags": [
+          "Params"
+        ],
+        "summary": "恢复默认参数",
+        "description": "恢复默认参数并请求保存。",
+        "operationId": "POST_api_v1_params_factory_reset",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParamsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "恢复默认参数",
+        "x-apifox-folder": "Params",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/self-test": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "summary": "执行 mock 自检",
+        "description": "设置自检通过事件位，当前为 mock 自检。",
+        "operationId": "POST_api_v1_self_test",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "执行 mock 自检",
+        "x-apifox-folder": "System",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/reboot": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "summary": "安全重启",
+        "description": "先返回响应，再执行 safe-off 和重启。",
+        "operationId": "POST_api_v1_reboot",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "安全重启",
+        "x-apifox-folder": "System",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/safe-mode": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "summary": "进入安全模式",
+        "description": "主动进入 SAFE_MODE。",
+        "operationId": "POST_api_v1_safe_mode",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafeModeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "进入安全模式",
+        "x-apifox-folder": "System",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Errors & Logs"
+        ],
+        "summary": "获取任务健康状态",
+        "description": "返回关键任务注册、心跳和超时状态。",
+        "operationId": "GET_api_v1_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取任务健康状态",
+        "x-apifox-folder": "Errors & Logs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/logs/recent": {
+      "get": {
+        "tags": [
+          "Errors & Logs"
+        ],
+        "summary": "获取最近日志",
+        "description": "返回最近 8 条内存日志。",
+        "operationId": "GET_api_v1_logs_recent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "获取最近日志",
+        "x-apifox-folder": "Errors & Logs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/safe-off": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "summary": "安全关闭危险输出",
+        "description": "立即关闭 VH/STB/电机等危险输出，是最高优先级安全 API。",
+        "operationId": "POST_api_v1_safe_off",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "安全关闭危险输出",
+        "x-apifox-folder": "System",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/print/files": {
+      "post": {
+        "tags": [
+          "Print Files"
+        ],
+        "summary": "创建打印文件上传",
+        "description": "创建 raw 打印文件上传会话。",
+        "operationId": "POST_api_v1_print_files",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "description": "文件字节数，必须 >0、<=3072 且为 48 的整数倍",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "crc32",
+            "in": "query",
+            "required": true,
+            "description": "标准 CRC32/IEEE，支持十进制或 0x 十六进制",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintFileCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "创建打印文件上传",
+        "x-apifox-folder": "Print Files",
+        "x-apifox-status": "developing"
+      },
+      "get": {
+        "tags": [
+          "Print Files"
+        ],
+        "summary": "列出打印文件",
+        "description": "列出当前非空上传文件槽。",
+        "operationId": "GET_api_v1_print_files",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintFileListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "列出打印文件",
+        "x-apifox-folder": "Print Files",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/print/files/{file_id}/chunks/{index}": {
+      "put": {
+        "tags": [
+          "Print Files"
+        ],
+        "summary": "上传文件分片",
+        "description": "上传 raw 二进制分片。Body 为 application/octet-stream；偏移为 index * 512，最后一片可短于 512。",
+        "operationId": "PUT_api_v1_print_files_file_id_chunks_index",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "description": "上传文件 ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "description": "从 0 开始的分片序号",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintFileCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "上传文件分片",
+        "x-apifox-folder": "Print Files",
+        "x-apifox-status": "developing",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              },
+              "examples": {
+                "raw": {
+                  "summary": "raw binary body"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/print/files/{file_id}/complete": {
+      "post": {
+        "tags": [
+          "Print Files"
+        ],
+        "summary": "完成打印文件上传",
+        "description": "校验总大小、48 字节行对齐和 CRC32，成功后文件状态变为 COMPLETE。",
+        "operationId": "POST_api_v1_print_files_file_id_complete",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "description": "上传文件 ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintFileCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "完成打印文件上传",
+        "x-apifox-folder": "Print Files",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/print/files/{file_id}": {
+      "delete": {
+        "tags": [
+          "Print Files"
+        ],
+        "summary": "删除打印文件",
+        "description": "删除上传文件并释放槽位。",
+        "operationId": "DELETE_api_v1_print_files_file_id",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "description": "上传文件 ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintFileDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "删除打印文件",
+        "x-apifox-folder": "Print Files",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/print/jobs": {
+      "post": {
+        "tags": [
+          "Print Jobs"
+        ],
+        "summary": "创建打印任务",
+        "description": "根据 COMPLETE 文件创建并启动打印任务；默认 mock 路径不会真实加热或走纸。",
+        "operationId": "POST_api_v1_print_jobs",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "query",
+            "required": true,
+            "description": "必须是 COMPLETE 状态文件 ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "required": false,
+            "description": "当前只支持 1，默认 1",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "density",
+            "in": "query",
+            "required": false,
+            "description": "0..100，仅范围校验，默认 50",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "heat",
+            "in": "query",
+            "required": false,
+            "description": "0..100，仅范围校验，默认 50",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintJobCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "创建打印任务",
+        "x-apifox-folder": "Print Jobs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/print/jobs/current": {
+      "get": {
+        "tags": [
+          "Print Jobs"
+        ],
+        "summary": "查询当前打印任务",
+        "description": "查询当前打印任务状态。",
+        "operationId": "GET_api_v1_print_jobs_current",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintJobCurrentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "查询当前打印任务",
+        "x-apifox-folder": "Print Jobs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/print/jobs/current/cancel": {
+      "post": {
+        "tags": [
+          "Print Jobs"
+        ],
+        "summary": "取消当前打印任务",
+        "description": "取消当前打印任务。",
+        "operationId": "POST_api_v1_print_jobs_current_cancel",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintJobCancelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "取消当前打印任务",
+        "x-apifox-folder": "Print Jobs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/feed": {
+      "post": {
+        "tags": [
+          "Print Jobs"
+        ],
+        "summary": "走纸",
+        "description": "请求安全走纸。SAFE_MODE 下会被拒绝。",
+        "operationId": "POST_api_v1_feed",
+        "parameters": [
+          {
+            "name": "steps",
+            "in": "query",
+            "required": false,
+            "description": "1..200，默认 1",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "走纸",
+        "x-apifox-folder": "Print Jobs",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/factory/motor-test": {
+      "post": {
+        "tags": [
+          "Factory Tests"
+        ],
+        "summary": "电机低速测试",
+        "description": "低速小步数电机测试，结束后 release/sleep；需要真实电机宏且 nFAULT 无故障。",
+        "operationId": "POST_api_v1_factory_motor_test",
+        "parameters": [
+          {
+            "name": "steps",
+            "in": "query",
+            "required": false,
+            "description": "1..200，默认 1",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MotorTestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "电机低速测试",
+        "x-apifox-folder": "Factory Tests",
+        "x-apifox-status": "developing"
+      }
+    },
+    "/api/v1/factory/head-shift-test": {
+      "post": {
+        "tags": [
+          "Factory Tests"
+        ],
+        "summary": "打印头 shift/latch 测试",
+        "description": "Body 必须正好 48 字节 raw，只执行 shift/latch，并保持 VH 关闭。",
+        "operationId": "POST_api_v1_factory_head_shift_test",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "打印头 shift/latch 测试",
+        "x-apifox-folder": "Factory Tests",
+        "x-apifox-status": "developing",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              },
+              "examples": {
+                "raw": {
+                  "summary": "raw binary body"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/factory/head-stb-test": {
+      "post": {
+        "tags": [
+          "Factory Tests"
+        ],
+        "summary": "单组 STB 空载测试",
+        "description": "VH 关闭条件下输出单组 STB 空载测试脉冲。",
+        "operationId": "POST_api_v1_factory_head_stb_test",
+        "parameters": [
+          {
+            "name": "group",
+            "in": "query",
+            "required": true,
+            "description": "0..5，STB 组号",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pulse_us",
+            "in": "query",
+            "required": false,
+            "description": "脉冲宽度，默认 5",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeadStbResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数或业务校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源或路径不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "冲突或 SAFE_MODE 拦截",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-name": "单组 STB 空载测试",
+        "x-apifox-folder": "Factory Tests",
+        "x-apifox-status": "developing"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CommonResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "请求是否成功"
+          },
+          "code": {
+            "type": "string",
+            "description": "业务状态码；成功一般为 OK"
+          },
+          "message": {
+            "type": "string",
+            "description": "人类可读说明"
+          }
+        },
+        "required": [
+          "ok",
+          "code",
+          "message"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "固定为 false"
+          },
+          "code": {
+            "type": "string",
+            "description": "错误码字符串"
+          },
+          "message": {
+            "type": "string",
+            "description": "错误说明"
+          },
+          "error": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "固件内部 AppErrorCode 数值"
+          },
+          "system_state": {
+            "type": "string",
+            "description": "SAFE_MODE 拦截时返回当前系统状态",
+            "enum": [
+              "BOOT",
+              "INIT",
+              "SELF_TEST",
+              "IDLE",
+              "READY",
+              "RUNNING",
+              "ERROR",
+              "RECOVERY",
+              "SAFE_MODE",
+              "LOW_POWER",
+              "SHUTDOWN",
+              "UNKNOWN"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "description": "NOT_FOUND 时返回未知路径"
+          }
+        },
+        "required": [
+          "ok",
+          "code",
+          "message"
+        ]
+      },
+      "Features": {
+        "type": "object",
+        "properties": {
+          "wifi": {
+            "type": "boolean",
+            "description": "WiFi API 是否编译启用"
+          },
+          "hw_thermal_head": {
+            "type": "boolean",
+            "description": "真实热敏头驱动是否编译启用"
+          },
+          "hw_stepper": {
+            "type": "boolean",
+            "description": "真实步进电机驱动是否编译启用"
+          },
+          "hw_sensors": {
+            "type": "boolean",
+            "description": "真实传感器驱动是否编译启用"
+          },
+          "wdt": {
+            "type": "boolean",
+            "description": "Watchdog 是否编译启用"
+          }
+        }
+      },
+      "InfoResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string",
+            "description": "设备名",
+            "example": "MiniPrinterRTOS"
+          },
+          "api_prefix": {
+            "type": "string",
+            "description": "API 前缀",
+            "example": "/api/v1"
+          },
+          "wifi_control_surface": {
+            "type": "string",
+            "description": "控制面标记",
+            "example": "official"
+          },
+          "features": {
+            "$ref": "#/components/schemas/Features"
+          }
+        }
+      },
+      "SensorSnapshot": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "boolean",
+            "description": "是否为摘要结构；当前固定 true"
+          },
+          "paper": {
+            "type": "boolean",
+            "description": "是否检测到有纸"
+          },
+          "head_temp_c": {
+            "type": "number",
+            "format": "float",
+            "description": "打印头温度，摄氏度"
+          },
+          "battery_mv": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "电池电压，mV"
+          },
+          "charge_status": {
+            "type": "string",
+            "description": "充电状态文本",
+            "enum": [
+              "UNKNOWN",
+              "NOT_CHARGING",
+              "CHARGING",
+              "FULL",
+              "FAULT"
+            ]
+          },
+          "charge_status_raw": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "充电状态原始枚举值，0=UNKNOWN"
+          },
+          "charging": {
+            "type": "boolean",
+            "description": "是否充电中"
+          },
+          "motor_fault": {
+            "type": "boolean",
+            "description": "电机驱动是否报告故障"
+          },
+          "validity": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "SensorValidity 数值：0=VALID, 1=INVALID, 2=STALE"
+          },
+          "tick_ms": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "采样时间，ms"
+          }
+        }
+      },
+      "KeySnapshot": {
+        "type": "object",
+        "properties": {
+          "raw_level_high": {
+            "type": "boolean",
+            "description": "GPIO 原始电平是否为高"
+          },
+          "pressed": {
+            "type": "boolean",
+            "description": "按当前低有效假设解释后的按下状态"
+          },
+          "active_low_assumed": {
+            "type": "boolean",
+            "description": "当前是否按低有效解释"
+          },
+          "last_event": {
+            "type": "string",
+            "description": "最近一次事件",
+            "enum": [
+              "NONE",
+              "SHORT_PRESS",
+              "LONG_PRESS",
+              "UNKNOWN"
+            ]
+          },
+          "last_event_tick_ms": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最近事件发生 tick，ms"
+          },
+          "press_duration_ms": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "当前或最近按下持续时间，ms"
+          }
+        }
+      },
+      "ErrorEvent": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "AppErrorCode"
+          },
+          "severity": {
+            "type": "string",
+            "description": "严重级别",
+            "enum": [
+              "NONE",
+              "INFO",
+              "WARN",
+              "ERROR",
+              "FATAL",
+              "UNKNOWN"
+            ]
+          },
+          "module": {
+            "type": "string",
+            "description": "错误来源模块"
+          },
+          "detail": {
+            "type": "string",
+            "description": "错误细节"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "错误时间戳/tick"
+          },
+          "safe_mode": {
+            "type": "boolean",
+            "description": "是否已经要求安全模式"
+          }
+        }
+      },
+      "StatusPrint": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "打印任务状态",
+            "enum": [
+              "NONE",
+              "RECEIVING",
+              "QUEUED",
+              "PRINTING",
+              "PAUSED",
+              "DONE",
+              "CANCELLED",
+              "FAILED",
+              "UNKNOWN"
+            ]
+          },
+          "job_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "当前打印任务编号，0 表示无任务"
+          },
+          "line_done": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "已处理行数"
+          },
+          "end_requested": {
+            "type": "boolean",
+            "description": "是否已请求结束任务"
+          },
+          "last_error": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最近打印错误码"
+          }
+        }
+      },
+      "StatusErrorSummary": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最近错误码"
+          },
+          "severity": {
+            "type": "string",
+            "description": "严重级别",
+            "enum": [
+              "NONE",
+              "INFO",
+              "WARN",
+              "ERROR",
+              "FATAL",
+              "UNKNOWN"
+            ]
+          },
+          "safe_mode": {
+            "type": "boolean",
+            "description": "是否要求安全模式"
+          }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "system_state": {
+            "type": "string",
+            "description": "整机系统状态",
+            "enum": [
+              "BOOT",
+              "INIT",
+              "SELF_TEST",
+              "IDLE",
+              "READY",
+              "RUNNING",
+              "ERROR",
+              "RECOVERY",
+              "SAFE_MODE",
+              "LOW_POWER",
+              "SHUTDOWN",
+              "UNKNOWN"
+            ]
+          },
+          "print": {
+            "$ref": "#/components/schemas/StatusPrint"
+          },
+          "sensors": {
+            "$ref": "#/components/schemas/SensorSnapshot"
+          },
+          "key": {
+            "$ref": "#/components/schemas/KeySnapshot"
+          },
+          "error": {
+            "$ref": "#/components/schemas/StatusErrorSummary"
+          }
+        }
+      },
+      "KeyResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "key": {
+            "$ref": "#/components/schemas/KeySnapshot"
+          }
+        }
+      },
+      "SensorsResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "sensors": {
+            "$ref": "#/components/schemas/SensorSnapshot"
+          }
+        }
+      },
+      "BatteryResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "battery_mv": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "电池电压，mV"
+          },
+          "battery_ok": {
+            "type": "boolean",
+            "description": "电池电压是否满足安全事件位"
+          },
+          "low_voltage_stop_mv": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "低电压危险动作停止线，mV"
+          },
+          "charge_status": {
+            "type": "string",
+            "description": "充电状态文本",
+            "enum": [
+              "UNKNOWN",
+              "NOT_CHARGING",
+              "CHARGING",
+              "FULL",
+              "FAULT"
+            ]
+          },
+          "charge_status_raw": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "充电状态原始枚举值"
+          },
+          "charging": {
+            "type": "boolean",
+            "description": "是否充电中"
+          },
+          "low_power": {
+            "type": "boolean",
+            "description": "是否低电压受限"
+          },
+          "validity": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "SensorValidity 数值"
+          }
+        }
+      },
+      "ErrorGetResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorEvent"
+          }
+        }
+      },
+      "PrintParams": {
+        "type": "object",
+        "properties": {
+          "dots_per_line": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "每行点数"
+          },
+          "bytes_per_line": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "每行字节数"
+          },
+          "stb_group_count": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "STB 分组数"
+          }
+        }
+      },
+      "MotorParams": {
+        "type": "object",
+        "properties": {
+          "steps_per_line": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "每打印一行后的整步数"
+          },
+          "start_interval_us": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "起步相位间隔 us"
+          },
+          "run_interval_us": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "常速相位间隔 us"
+          },
+          "fast_interval_us": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "快速相位间隔 us"
+          }
+        }
+      },
+      "SafetyParams": {
+        "type": "object",
+        "properties": {
+          "max_heat_dots": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最大同时加热点数",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "temp_stop_c": {
+            "type": "integer",
+            "format": "int32",
+            "description": "停止加热温度 C",
+            "minimum": 40,
+            "maximum": 80
+          },
+          "temp_resume_c": {
+            "type": "integer",
+            "format": "int32",
+            "description": "恢复温度 C",
+            "minimum": 30,
+            "maximum": 70
+          },
+          "heat_start_us": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "初始热脉冲 us"
+          },
+          "heat_max_us": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最大热脉冲 us"
+          },
+          "forbid_heat_paper_missing": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "缺纸禁止加热，0/1",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "forbid_heat_low_voltage": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "低电压禁止加热，0/1",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "forbid_fast_motor_low_voltage": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "低电压禁止高速电机，0/1",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "CommParams": {
+        "type": "object",
+        "properties": {
+          "max_frame_length": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最大协议帧长度"
+          },
+          "inter_byte_timeout_ms": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "帧内字节超时 ms"
+          },
+          "enable_crc": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "是否启用 CRC，0/1"
+          }
+        }
+      },
+      "Params": {
+        "type": "object",
+        "properties": {
+          "magic": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "参数块魔数"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "参数块版本"
+          },
+          "crc32": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "参数块 CRC"
+          },
+          "print": {
+            "$ref": "#/components/schemas/PrintParams"
+          },
+          "motor": {
+            "$ref": "#/components/schemas/MotorParams"
+          },
+          "safety": {
+            "$ref": "#/components/schemas/SafetyParams"
+          },
+          "comm": {
+            "$ref": "#/components/schemas/CommParams"
+          }
+        }
+      },
+      "ParamsResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/Params"
+          }
+        }
+      },
+      "PrintFileSnapshot": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "上传文件编号"
+          },
+          "state": {
+            "type": "string",
+            "description": "文件状态",
+            "enum": [
+              "EMPTY",
+              "RECEIVING",
+              "COMPLETE",
+              "UNKNOWN"
+            ]
+          },
+          "total_bytes": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "期望总字节数"
+          },
+          "received_bytes": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "已接收字节数"
+          },
+          "line_count": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "行数"
+          },
+          "expected_crc32": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "创建上传时声明的 CRC32"
+          },
+          "actual_crc32": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "complete 时计算出的 CRC32"
+          }
+        }
+      },
+      "PrintFileCreateResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最大文件字节数"
+          },
+          "chunk_size": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "建议分片大小"
+          },
+          "file": {
+            "$ref": "#/components/schemas/PrintFileSnapshot"
+          }
+        }
+      },
+      "PrintFileListResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "chunk_size": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrintFileSnapshot"
+            }
+          }
+        }
+      },
+      "PrintFileDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "被删除的文件编号"
+          }
+        }
+      },
+      "PrintJobCreateResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "新任务编号"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "打印文件编号"
+          },
+          "line_total": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "总行数"
+          },
+          "copies": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "份数，当前固定 1"
+          }
+        }
+      },
+      "PrintJobCurrentResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "state": {
+            "type": "string",
+            "description": "打印状态",
+            "enum": [
+              "NONE",
+              "RECEIVING",
+              "QUEUED",
+              "PRINTING",
+              "PAUSED",
+              "DONE",
+              "CANCELLED",
+              "FAILED",
+              "UNKNOWN"
+            ]
+          },
+          "line_done": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "end_requested": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        }
+      },
+      "PrintJobCancelResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        }
+      },
+      "FeedResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "请求走纸步数"
+          }
+        }
+      },
+      "SafeModeResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "进入安全模式原因错误码"
+          }
+        }
+      },
+      "SimpleResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskHealthEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "任务 ID",
+            "enum": [
+              "SYSTEM",
+              "LOGGER",
+              "MONITOR",
+              "ERROR",
+              "COMMAND",
+              "PRINT_CTRL",
+              "SENSOR",
+              "PARAM",
+              "COMM",
+              "WIFI_API",
+              "METRICS",
+              "UNKNOWN"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "任务名"
+          },
+          "registered": {
+            "type": "boolean",
+            "description": "是否注册"
+          },
+          "heartbeat": {
+            "type": "boolean",
+            "description": "是否有心跳"
+          },
+          "last_tick": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "最近心跳 tick"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "all_healthy": {
+            "type": "boolean"
+          },
+          "has_critical_timeout": {
+            "type": "boolean"
+          },
+          "safe_mode_requested": {
+            "type": "boolean"
+          },
+          "failed_task": {
+            "type": "string",
+            "description": "失败任务",
+            "enum": [
+              "SYSTEM",
+              "LOGGER",
+              "MONITOR",
+              "ERROR",
+              "COMMAND",
+              "PRINT_CTRL",
+              "SENSOR",
+              "PARAM",
+              "COMM",
+              "WIFI_API",
+              "METRICS",
+              "UNKNOWN"
+            ]
+          },
+          "failed_task_age_ticks": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskHealthEntry"
+            }
+          }
+        }
+      },
+      "LogEntry": {
+        "type": "object",
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "日志 tick"
+          },
+          "level": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "日志级别数值"
+          },
+          "module": {
+            "type": "string",
+            "description": "模块名"
+          },
+          "text": {
+            "type": "string",
+            "description": "日志文本"
+          }
+        }
+      },
+      "LogsResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogEntry"
+            }
+          }
+        }
+      },
+      "HeadStbResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "group": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "STB 组号",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "pulse_us": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "脉冲宽度 us"
+          }
+        }
+      },
+      "MotorTestResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "测试步数"
+          }
+        }
+      }
+    }
+  }
+}
