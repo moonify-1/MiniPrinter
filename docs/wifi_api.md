@@ -1,6 +1,6 @@
 # MiniPrinterRTOS WiFi API 详细说明
 
-更新时间：2026-04-27
+更新时间：2026-05-15
 
 本文以 `src/services/wifi_api_service.cpp` 为准，记录当前固件真实实现的 HTTP API。UART/串口只保留为烧录、日志和底层临时调试入口，正式控制面是 WiFi API。
 
@@ -634,6 +634,9 @@ Query 参数：
 
 - `docs/apifox/miniprinterrtos.apifox.json`：Apifox 原生候选格式，按常见导出结构组织分组、接口、参数和响应模型。
 - `docs/apifox/miniprinterrtos.openapi.json`：OpenAPI 3.0.3 格式，Apifox 官方稳定支持导入；如果原生候选文件不能导入，请使用此文件，数据源格式选 `OpenAPI/Swagger`。
+- `docs/apifox/simple_print_test.postman_collection.json`：简单打印测试集合，导入 Apifox 后按 `00..11` 顺序执行，会先查功能开关和安全状态，再测试 `feed`、可选 `motor-test`、一行 raw 上传和一行打印任务。
+- `docs/apifox/payloads/print_simple_1line.bin`：简单打印测试集合使用的一行 raw 打印文件，大小 48 bytes，CRC32/IEEE 为 `0x5F00F6CD`。
+- `docs/apifox/简单打印测试路径.md`：简单走纸和一行打印测试说明，特别区分 API 成功、mock 路径成功和真实纸张/纸面输出成功。
 - `docs/apifox/print_smoke_test.postman_collection.json`：打印冒烟测试集合，导入 Apifox 后按 `00..07` 顺序执行，会创建上传会话、上传 raw 分片、complete 校验并启动打印任务。
 - `docs/apifox/payloads/print_smoke_low_density_4lines.bin`：冒烟测试集合第 03 步使用的二进制 raw 打印文件，大小 192 bytes，CRC32/IEEE 为 `0x30D148A2`。
 - `docs/apifox/print_smoke_test.md`：打印冒烟测试说明，记录 Apifox 运行顺序、变量和预期返回。

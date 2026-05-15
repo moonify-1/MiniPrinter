@@ -945,3 +945,23 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 在 Apifox 打开 `docs/apifox/真实打印测试.md`，按文档依次上传 5 个分片；Step 04 看到 `actual_crc32=674149178` 后再启动真实打印。
+
+## Step 57
+
+- 时间：2026-05-15 21:36:37
+- 状态：已完成
+- 对应任务：在 `docs/apifox` 下新增简单打印测试路径，指导走纸和一行打印测试
+- 结果：
+  - 新增 `docs/apifox/简单打印测试路径.md`，按 Apifox 步骤说明 `info -> safe-off -> status -> feed -> motor-test -> 一行上传 -> complete -> print/jobs -> current -> safe-off/delete`。
+  - 新增 `docs/apifox/simple_print_test.postman_collection.json`，作为可导入 Apifox 的简单打印测试集合。
+  - 新增 `docs/apifox/payloads/print_simple_1line.bin`，作为 1 行、48 bytes 的低密度标记点 raw 文件。
+  - 文档中特别区分 `/api/v1/feed` 当前仍是 mock 步进电机路径、`/api/v1/factory/motor-test` 才用于真实电机小步验证、一行打印任务成功不等于真实纸面已经输出。
+  - 同步更新 `docs/wifi_api.md`、`docs/项目结构.md` 和 `docx/项目结构.md` 的 Apifox 文件清单。
+- 验证：
+  - `python -m json.tool docs/apifox/simple_print_test.postman_collection.json` 通过。
+  - 重新读取 `print_simple_1line.bin`，确认大小为 48 bytes、CRC32/IEEE 为 `0x5F00F6CD`，十进制为 `1593898701`。
+  - 确认每个 STB 组黑点数为 `8/8/8/8/8/8`，低于当前单组安全上限 64。
+  - `git diff --check` 通过，仅提示现有 Windows 换行归一化警告。
+  - `python -m platformio run` 通过。
+- 下一步建议：
+  - 在 Apifox 导入 `docs/apifox/simple_print_test.postman_collection.json`，按 `docs/apifox/简单打印测试路径.md` 从 Step 00 开始执行，并先用 `GET /api/v1/info` 判断当前固件是否是真实硬件路径。
