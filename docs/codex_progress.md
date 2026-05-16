@@ -965,3 +965,19 @@
   - `python -m platformio run` 通过。
 - 下一步建议：
   - 在 Apifox 导入 `docs/apifox/simple_print_test.postman_collection.json`，按 `docs/apifox/简单打印测试路径.md` 从 Step 00 开始执行，并先用 `GET /api/v1/info` 判断当前固件是否是真实硬件路径。
+
+## Step 58
+
+- 时间：2026-05-16 13:30:16
+- 状态：已完成
+- 对应任务：按用户确认，将默认固件配置切换为真实 factory 走纸和真实打印任务路径
+- 结果：
+  - 更新 `src/config/project_config.h`，默认启用 `MP_ENABLE_HW_STEPPER=1` 和 `MP_ENABLE_HW_THERMAL_HEAD=1`。
+  - 保持 `MP_ENABLE_WIFI=1`、当前 WiFi 配置和连接超时不变。
+  - 未启用 `MP_ENABLE_HW_SENSORS`，避免 `PAPER_N`、`TM1`、`BAT_STAT` 真实语义未确认时影响排障。
+  - 未修改 `/api/v1/feed`，该接口仍按当前实现走 mock 走纸路径。
+  - 同步更新 `docs/项目结构.md`，说明当前默认真实硬件路径边界。
+- 验证：
+  - `python -m platformio run` 通过；当前默认配置编译时包含 WiFi、真实步进电机和真实热敏头路径。
+- 下一步建议：
+  - 在 VSCode 烧录后，用 Apifox 先请求 `GET /api/v1/info`，确认 `hw_stepper=true` 且 `hw_thermal_head=true`，再按 `safe-off -> factory/motor-test -> safe-off -> 低密度打印任务 -> safe-off` 顺序测试。
