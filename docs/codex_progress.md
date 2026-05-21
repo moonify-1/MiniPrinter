@@ -981,3 +981,25 @@
   - `python -m platformio run` 通过；当前默认配置编译时包含 WiFi、真实步进电机和真实热敏头路径。
 - 下一步建议：
   - 在 VSCode 烧录后，用 Apifox 先请求 `GET /api/v1/info`，确认 `hw_stepper=true` 且 `hw_thermal_head=true`，再按 `safe-off -> factory/motor-test -> safe-off -> 低密度打印任务 -> safe-off` 顺序测试。
+
+## Step 59
+
+- 时间：2026-05-21 19:46:03
+- 状态：已完成
+- 对应任务：新增一键真实简单打印测试脚本，避免只验证 API 闭环
+- 结果：
+  - 新增 `tools/real_simple_print_test.py`，按 `info -> safe-off -> status -> factory/motor-test -> 上传可见短样张 -> complete -> print/jobs -> current -> safe-off/delete` 顺序执行。
+  - 新增 `tools/real_simple_print_test.ps1`，作为 Windows/PowerShell 一键入口。
+  - 脚本强制要求 `features.hw_stepper=true` 且 `features.hw_thermal_head=true`，否则中止，避免把 mock/API 成功误判为真实打印成功。
+  - 脚本不调用当前仍为 mock 走纸路径的 `/api/v1/feed`；真实动作前先跑 `POST /api/v1/factory/motor-test?steps=4`。
+  - 默认把 `docs/apifox/payloads/print_simple_1line.bin` 重复为 16 行低密度点迹，便于看到实际纸面效果；默认 `density=25`、`heat=25`。
+  - 更新 `docs/apifox/简单打印测试路径.md`，补充一键真实打印脚本说明。
+  - 同步更新 `docs/项目结构.md` 和 `docx/项目结构.md` 的工具目录说明。
+- 验证：
+  - `python -m py_compile tools/real_simple_print_test.py` 通过。
+  - `python tools/real_simple_print_test.py --dry-run` 通过，确认默认样张为 16 行、768 bytes、CRC32 `0xD39C2ED1`。
+  - `powershell -ExecutionPolicy Bypass -File tools\real_simple_print_test.ps1 -DryRun` 通过。
+  - `python tools/api_client.py self-test` 通过。
+  - `git diff --check` 通过，仅提示已有 Windows 换行归一化警告。
+- 下一步建议：
+  - 烧录后从串口确认 `WiFi STA connected ip=...`，再运行 `.\tools\real_simple_print_test.ps1 -Base http://<设备IP>`；如果脚本中止，先按输出的失败步骤排查，不要直接调高 `Density` 或 `Heat`。
