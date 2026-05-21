@@ -4,7 +4,12 @@
 
 namespace {
 
-constexpr TickType_t kPrintStateMutexWaitTicks = pdMS_TO_TICKS(5U);
+// 打印状态不能用很短超时静默放弃。
+//
+// 实机一键打印时，HTTP 轮询会频繁读取 PrintAppSnapshot；
+// 如果 PrintEngineTask 正好在每行结束时更新 printedLines，5ms 超时可能让纸面已经打印，
+// 但 line_done 少记 1 行。这里选择一直等到互斥量可用，让状态记录和真实动作保持一致。
+constexpr TickType_t kPrintStateMutexWaitTicks = portMAX_DELAY;
 
 mp::PrintAppSnapshot g_print = {
     mp::PrintJobState::NONE,

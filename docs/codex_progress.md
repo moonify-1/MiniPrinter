@@ -1046,3 +1046,24 @@
 - 下一步建议：
   - 先用 VSCode/PlatformIO 烧录新固件；如果未烧录就运行脚本，会因为设备还没有 `/api/v1/factory/real-print-test` 而返回 `NOT_FOUND`。
   - 烧录后重新运行 `powershell -ExecutionPolicy Bypass -File .\tools\real_simple_print_test.ps1`，这次不再执行 `PUT /print/files/.../chunks/0`。
+
+## Step 62
+
+- 时间：2026-05-21 20:46:34
+- 状态：已完成
+- 对应任务：修正一键真实打印 DONE 后 line_done 少 1 导致脚本误判超时
+- 现场现象：
+  - `/api/v1/factory/real-print-test` 已成功返回 202，说明新固件接口已烧录生效。
+  - 任务状态进入 `DONE`，`error=0`，但 `line_done=15`，脚本原本按 16 行严格等待，因此误判为 poll timeout，并对已完成任务发起 cancel。
+  - 设备日志显示已打印到 `line=15`，这是从 0 开始计数的第 16 行；说明纸面动作已经执行，问题集中在完成计数/脚本判断。
+- 结果：
+  - 更新 `tools/real_simple_print_test.py`：当固件返回 `state=DONE` 且 `error=0` 时判定任务完成；如果 `line_done` 小于期望值，仅打印 warning，不再取消已完成任务。
+  - 更新 `src/app/app_print.cpp`：打印状态互斥量改为可靠等待，避免 HTTP 轮询和 PrintEngineTask 同时访问状态时，`printedLines` 更新因为 5ms 超时而静默丢失。
+- 验证：
+  - `python -m platformio run` 通过；RAM 21.3%，Flash 24.2%。
+  - `python -m py_compile tools\real_simple_print_test.py` 通过。
+  - `python tools\real_simple_print_test.py --dry-run` 通过。
+  - `powershell -ExecutionPolicy Bypass -File tools\real_simple_print_test.ps1 -DryRun` 通过。
+  - `git diff --check` 通过，仅提示当前工作区的 Windows 换行归一化警告。
+- 下一步建议：
+  - 烧录包含本步骤修正的新固件后，再运行同一条 PowerShell 命令；预期不会再因为 `DONE + line_done=15` 误报失败。
