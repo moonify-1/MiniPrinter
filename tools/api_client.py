@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib import error, parse, request
 
 
-DEFAULT_BASE_URL = "http://192.168.1.134"
+DEFAULT_BASE_URL = "http://192.168.0.168"
 BYTES_PER_LINE = 48
 DEFAULT_CHUNK_SIZE = 512
 

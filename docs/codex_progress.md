@@ -1003,3 +1003,19 @@
   - `git diff --check` 通过，仅提示已有 Windows 换行归一化警告。
 - 下一步建议：
   - 烧录后从串口确认 `WiFi STA connected ip=...`，再运行 `.\tools\real_simple_print_test.ps1 -Base http://<设备IP>`；如果脚本中止，先按输出的失败步骤排查，不要直接调高 `Density` 或 `Heat`。
+
+## Step 60
+
+- 时间：2026-05-21 19:59:09
+- 状态：已完成
+- 对应任务：将设备固定 IP 更新为 `http://192.168.0.168`
+- 结果：
+  - 更新 `tools/real_simple_print_test.py` 和 `tools/real_simple_print_test.ps1` 的默认设备地址。
+  - 更新 `tools/api_client.py` 的默认 `DEFAULT_BASE_URL`，普通 WiFi API 命令也默认访问固定 IP。
+  - 同步更新 `docs/apifox/简单打印测试路径.md`、`docs/apifox/print_smoke_test.md`、`docs/apifox/真实打印测试.md`、`docs/项目启动说明.md` 和 `docs/硬件补充信息整理.md` 中的当前示例地址。
+  - 历史进度里旧的实测记录保持原样，避免把过去发生过的 IP 记录改成新事实。
+- 验证：
+  - `python tools/real_simple_print_test.py --dry-run` 通过，默认地址显示为 `http://192.168.0.168`。
+  - `powershell -ExecutionPolicy Bypass -File tools\real_simple_print_test.ps1 -DryRun` 通过，默认地址显示为 `http://192.168.0.168`。
+- 下一步建议：
+  - 后续真实打印可直接运行 `.\tools\real_simple_print_test.ps1`，不需要再手动传 `-Base`。

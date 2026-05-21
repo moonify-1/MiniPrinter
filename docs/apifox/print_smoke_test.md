@@ -12,13 +12,13 @@
 如果串口日志显示：
 
 ```text
-WiFi STA connected ip=192.168.1.168
+WiFi STA connected ip=192.168.0.168
 ```
 
 则 Apifox 环境变量填写：
 
 ```text
-baseUrl = http://192.168.1.168
+baseUrl = http://192.168.0.168
 ```
 
 ## 1. 测试文件
@@ -437,19 +437,19 @@ DELETE {{baseUrl}}/api/v1/print/files/1
 
 ## 11. 一次成功测试的最短参数清单
 
-假设设备 IP 是 `192.168.1.168`，Step 02 返回 `file_id=1`，则完整流程如下：
+假设设备 IP 是 `192.168.0.168`，Step 02 返回 `file_id=1`，则完整流程如下：
 
 ```text
-00 POST http://192.168.1.168/api/v1/safe-off
-01 GET  http://192.168.1.168/api/v1/status
-02 POST http://192.168.1.168/api/v1/print/files?size=192&crc32=0x30D148A2
-03 PUT  http://192.168.1.168/api/v1/print/files/1/chunks/0
+00 POST http://192.168.0.168/api/v1/safe-off
+01 GET  http://192.168.0.168/api/v1/status
+02 POST http://192.168.0.168/api/v1/print/files?size=192&crc32=0x30D148A2
+03 PUT  http://192.168.0.168/api/v1/print/files/1/chunks/0
    Body: Binary -> docs/apifox/payloads/print_smoke_low_density_4lines.bin
    Header: Content-Type=application/octet-stream
-04 POST http://192.168.1.168/api/v1/print/files/1/complete
-05 POST http://192.168.1.168/api/v1/print/jobs?file_id=1&copies=1&density=50&heat=50
-06 GET  http://192.168.1.168/api/v1/print/jobs/current
-07 GET  http://192.168.1.168/api/v1/print/files
+04 POST http://192.168.0.168/api/v1/print/files/1/complete
+05 POST http://192.168.0.168/api/v1/print/jobs?file_id=1&copies=1&density=50&heat=50
+06 GET  http://192.168.0.168/api/v1/print/jobs/current
+07 GET  http://192.168.0.168/api/v1/print/files
 ```
 
 ## 12. 真实硬件提醒

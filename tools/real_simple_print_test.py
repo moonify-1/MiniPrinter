@@ -19,7 +19,7 @@ import api_client
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_BASE_URL = "http://192.168.1.168"
+DEFAULT_BASE_URL = "http://192.168.0.168"
 DEFAULT_PAYLOAD = REPO_ROOT / "docs" / "apifox" / "payloads" / "print_simple_1line.bin"
 DEFAULT_REPEAT_LINES = 16
 

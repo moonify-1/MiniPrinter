@@ -1,5 +1,5 @@
 param(
-    [string]$Base = "http://192.168.1.168",
+    [string]$Base = "http://192.168.0.168",
     [int]$RepeatLines = 16,
     [int]$Density = 25,
     [int]$Heat = 25,
