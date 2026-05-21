@@ -48,6 +48,14 @@ AppErrorCode FactoryTest_HeadShiftTest(const std::uint8_t* lineData,
 AppErrorCode FactoryTest_HeadStbTest(std::uint8_t group,
                                      std::uint32_t pulseUs);
 
+// VH 输出测量测试。
+//
+// 安全约束：
+// - 只打开 VH，高压测量窗口内始终保持 STB1~STB6 关闭。
+// - 不移位、不 latch、不输出 STB 脉冲，因此不主动形成加热通路。
+// - holdMs 由 HTTP 层限制在小范围内；测试结束后再次 setSafe()。
+AppErrorCode FactoryTest_VhMeasure(std::uint32_t holdMs);
+
 // 手动进入 SAFE_MODE。
 //
 // 该入口会先关闭危险输出，再通过 ErrorService/SystemApp 锁存安全模式。

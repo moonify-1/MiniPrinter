@@ -1067,3 +1067,20 @@
   - `git diff --check` 通过，仅提示当前工作区的 Windows 换行归一化警告。
 - 下一步建议：
   - 烧录包含本步骤修正的新固件后，再运行同一条 PowerShell 命令；预期不会再因为 `DONE + line_done=15` 误报失败。
+
+## Step 63
+
+- 时间：2026-05-21 21:04:40
+- 状态：已完成
+- 对应任务：新增无示波器场景下的 `VH_OUT` 万用表测量接口
+- 背景：
+  - 用户确认一键真实打印脚本返回成功，但纸面没有真实点迹。
+  - 当前优先排查方向从 WiFi/API/队列切换到热敏头加热链路：热敏纸方向、`G_VH/VH_OUT`、STB、DI/CLK/LAT。
+- 结果：
+  - 新增 `FactoryTest_VhMeasure()`：STB 全关，不 shift、不 latch、不输出 STB，只短暂打开 VH，并在结束后回到 `setSafe()`。
+  - 新增 `POST /api/v1/factory/vh-measure?hold_ms=3000`，`hold_ms` 限制为 1..5000 ms，便于用万用表测量 `VH_OUT`。
+  - 更新 `tools/api_client.py`，新增 `vh-measure --hold-ms 3000` 子命令作为可选调用方式；用户也可以直接用 Apifox 调接口。
+  - 更新 `docs/wifi_api.md`、`docs/硬件空载波形验证.md` 和 `docs/项目结构.md`，记录测量接口和下一步排查边界。
+- 下一步建议：
+  - 烧录后先执行 `safe-off`，再调用 `POST /api/v1/factory/vh-measure?hold_ms=3000`。
+  - 调用期间用万用表测 `VH_OUT` 对电源地，应接近电池电压；测试结束后应回到关闭状态。

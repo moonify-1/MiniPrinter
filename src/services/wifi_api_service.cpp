@@ -1312,6 +1312,33 @@ void HandleFactoryHeadStbTest() {
   SendJson(200, json);
 }
 
+void HandleFactoryVhMeasure() {
+  if (!RequireNotSafeMode("vh measure is blocked in SAFE_MODE")) {
+    return;
+  }
+
+  std::uint32_t holdMs = 3000U;
+  if (!ParseOptionalU32Arg("hold_ms", 3000U, &holdMs) || holdMs == 0U ||
+      holdMs > 5000U) {
+    SendErrorJson(400, "PARAM_OUT_OF_RANGE",
+                  "hold_ms must be in 1..5000", mp::ERR_COMM_FRAME_TOO_LONG);
+    return;
+  }
+
+  const mp::AppErrorCode result = mp::FactoryTest_VhMeasure(holdMs);
+  if (result != mp::APP_OK) {
+    SendErrorJson(400, "VH_MEASURE_FAILED",
+                  "hardware macro is required; STB remains off", result);
+    return;
+  }
+
+  String json = JsonHeader(true, "OK", "VH measure window finished");
+  json += ",\"hold_ms\":";
+  json += holdMs;
+  json += ",\"stb\":\"off\"}";
+  SendJson(200, json);
+}
+
 void HandleFactoryMotorTest() {
   if (!RequireNotSafeMode("motor test is blocked in SAFE_MODE")) {
     return;
@@ -1481,6 +1508,8 @@ void RegisterRoutes() {
               HandleFactoryHeadShiftTest, HandleRawBody);
   g_server.on("/api/v1/factory/head-stb-test", HTTP_POST,
               HandleFactoryHeadStbTest);
+  g_server.on("/api/v1/factory/vh-measure", HTTP_POST,
+              HandleFactoryVhMeasure);
   g_server.onNotFound(HandleNotFound);
 }
 

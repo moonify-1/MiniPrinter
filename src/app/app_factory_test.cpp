@@ -21,6 +21,8 @@ namespace {
 constexpr std::uint32_t kFactoryMotorStepIntervalUs = 5000U;
 constexpr std::uint32_t kFactoryMotorMaxSteps = 200U;
 constexpr std::uint32_t kFactoryDefaultStbPulseUs = 5U;
+constexpr std::uint32_t kFactoryDefaultVhHoldMs = 3000U;
+constexpr std::uint32_t kFactoryMaxVhHoldMs = 5000U;
 
 // 调试命令触发 SAFE_MODE 时使用的专用错误码。
 //
@@ -51,6 +53,16 @@ std::uint32_t ClampStbPulseUs(std::uint32_t pulseUs) {
   return (requested > mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US)
              ? mp::SAFETY_DEFAULT_HEAT_PULSE_MAX_US
              : requested;
+}
+
+// 将 VH 测量窗口限制在几秒内。
+//
+// 这个测试会打开打印头高压路径，虽然 STB 全关不会主动加热，
+// 但仍然不允许长时间保持 VH 打开。
+std::uint32_t ClampVhHoldMs(std::uint32_t holdMs) {
+  const std::uint32_t requested =
+      (holdMs == 0U) ? kFactoryDefaultVhHoldMs : holdMs;
+  return (requested > kFactoryMaxVhHoldMs) ? kFactoryMaxVhHoldMs : requested;
 }
 
 }  // namespace
@@ -179,6 +191,37 @@ AppErrorCode FactoryTest_HeadStbTest(std::uint8_t group,
   ok = head.setVh(false) && ok;
   return ok ? APP_OK : ERR_HW_DISABLED;
 #else
+  return ERR_HW_DISABLED;
+#endif
+}
+
+AppErrorCode FactoryTest_VhMeasure(std::uint32_t holdMs) {
+  const std::uint32_t safeHoldMs = ClampVhHoldMs(holdMs);
+  Log_Warn("factory", "VH_MEASURE hold_ms=%lu safe_ms=%lu",
+           static_cast<unsigned long>(holdMs),
+           static_cast<unsigned long>(safeHoldMs));
+
+#if MP_ENABLE_HW_THERMAL_HEAD
+  ThermalHeadDriver& head = GetThermalHeadDriver();
+  if (!head.init()) {
+    (void)head.setSafe();
+    return ERR_HW_DISABLED;
+  }
+
+  // 这个测试只为万用表测 VH_OUT 准备：
+  // - STB 全程关闭，避免选通任何加热点。
+  // - 不 shift、不 latch，避免改变打印头数据锁存状态。
+  // - 延时结束后无论结果如何都回到 setSafe()。
+  bool ok = head.allStbOff();
+  ok = head.setVh(false) && ok;
+  ok = head.setVh(true) && ok;
+  delay(safeHoldMs);
+  ok = head.setVh(false) && ok;
+  ok = head.allStbOff() && ok;
+  (void)head.setSafe();
+  return ok ? APP_OK : ERR_HW_DISABLED;
+#else
+  (void)safeHoldMs;
   return ERR_HW_DISABLED;
 #endif
 }

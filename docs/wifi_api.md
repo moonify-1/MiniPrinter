@@ -145,6 +145,7 @@
 | Factory Tests | `POST` | `/api/v1/factory/real-print-test` | 固件内部生成低密度点迹并启动真实打印任务，不走二进制上传。 |
 | Factory Tests | `POST` | `/api/v1/factory/head-shift-test` | Body 必须正好 48 字节 raw，只执行 shift/latch，并保持 VH 关闭。 |
 | Factory Tests | `POST` | `/api/v1/factory/head-stb-test` | VH 关闭条件下输出单组 STB 空载测试脉冲。 |
+| Factory Tests | `POST` | `/api/v1/factory/vh-measure` | STB 全关，仅短暂打开 VH，便于用万用表测量 `VH_OUT`。 |
 
 ## 5. API 详情
 
@@ -646,6 +647,27 @@ Query 参数：
 
 | 状态码 | code | 场景 |
 |---:|---|---|
+| 409 | `SAFE_MODE_BLOCKED` | 处于 SAFE_MODE，动作被拒绝 |
+
+#### POST /api/v1/factory/vh-measure
+
+STB 全关，仅短暂打开 `G_VH`，用于没有示波器时用万用表测量 `VH_OUT` 是否接近电池电压。这个接口不会 shift、不会 latch、不会输出 STB 脉冲；测试结束后会再次执行热敏头 safe 状态。
+
+- 成功状态码：`200`
+- 成功返回：`VhMeasureResponse`
+
+Query 参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `hold_ms` | `integer` | 否 | 1..5000，默认 3000；VH 保持打开的测量窗口 |
+
+常见错误：
+
+| 状态码 | code | 场景 |
+|---:|---|---|
+| 400 | `PARAM_OUT_OF_RANGE` | `hold_ms` 不在 1..5000 |
+| 400 | `VH_MEASURE_FAILED` | 未启用真实热敏头宏，或 VH 控制失败 |
 | 409 | `SAFE_MODE_BLOCKED` | 处于 SAFE_MODE，动作被拒绝 |
 
 ## 6. 打印文件约束

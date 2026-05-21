@@ -152,6 +152,17 @@ def cmd_head_stb_test(args: argparse.Namespace) -> int:
     return print_response(status, body)
 
 
+def cmd_vh_measure(args: argparse.Namespace) -> int:
+    """Open VH briefly with all STB groups off for multimeter measurement."""
+    status, body = http_request(
+        args,
+        "POST",
+        "/api/v1/factory/vh-measure",
+        query={"hold_ms": args.hold_ms},
+    )
+    return print_response(status, body)
+
+
 def cmd_head_shift_test(args: argparse.Namespace) -> int:
     """Send one 48-byte line to the shift/latch factory API."""
     if args.file:
@@ -310,6 +321,10 @@ def build_parser() -> argparse.ArgumentParser:
     stb.add_argument("--group", type=int, required=True)
     stb.add_argument("--pulse-us", type=int, default=5)
     stb.set_defaults(func=cmd_head_stb_test)
+
+    vh = sub.add_parser("vh-measure", help="open VH briefly with STB off")
+    vh.add_argument("--hold-ms", type=int, default=3000)
+    vh.set_defaults(func=cmd_vh_measure)
 
     sub.add_parser("self-test", help="local dry-run without device").set_defaults(
         func=cmd_self_test
