@@ -142,6 +142,7 @@
 | Print Jobs | `POST` | `/api/v1/print/jobs/current/cancel` | 取消当前打印任务。 |
 | Print Jobs | `POST` | `/api/v1/feed` | 请求安全走纸。SAFE_MODE 下会被拒绝。 |
 | Factory Tests | `POST` | `/api/v1/factory/motor-test` | 低速小步数电机测试，结束后 release/sleep；需要真实电机宏且 nFAULT 无故障。 |
+| Factory Tests | `POST` | `/api/v1/factory/real-print-test` | 固件内部生成低密度点迹并启动真实打印任务，不走二进制上传。 |
 | Factory Tests | `POST` | `/api/v1/factory/head-shift-test` | Body 必须正好 48 字节 raw，只执行 shift/latch，并保持 VH 关闭。 |
 | Factory Tests | `POST` | `/api/v1/factory/head-stb-test` | VH 关闭条件下输出单组 STB 空载测试脉冲。 |
 
@@ -586,6 +587,31 @@ Query 参数：
 | 状态码 | code | 场景 |
 |---:|---|---|
 | 409 | `SAFE_MODE_BLOCKED` | 处于 SAFE_MODE，动作被拒绝 |
+
+#### POST /api/v1/factory/real-print-test
+
+固件内部生成 `C0 00` 重复的低密度可见点迹，创建 COMPLETE 打印文件并启动真实打印任务。这个接口用于一键真实纸面验收，不接收二进制 Body，因此可以避开主机端 raw 上传步骤。
+
+- 成功状态码：`202`
+- 成功返回：`FactoryRealPrintResponse`
+
+Query 参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `lines` | `integer` | 否 | 1..64，默认 16；行数越多，纸面点迹越容易看到 |
+| `density` | `integer` | 否 | 0..100，默认 25；保留给上位机和后续调参记录 |
+| `heat` | `integer` | 否 | 0..100，默认 25；保留给上位机和后续调参记录 |
+
+常见错误：
+
+| 状态码 | code | 场景 |
+|---:|---|---|
+| 400 | `BAD_REQUEST` | `lines`、`density` 或 `heat` 不是数字 |
+| 400 | `PARAM_OUT_OF_RANGE` | `lines` 不在 1..64，或 `density/heat` 大于 100 |
+| 409 | `SAFE_MODE_BLOCKED` | 处于 SAFE_MODE，动作被拒绝 |
+| 409 | `HW_DISABLED` | 未同时启用真实步进电机和真实热敏头宏 |
+| 409 | `PRINT_BUSY` | 当前已有打印任务正在运行 |
 
 #### POST /api/v1/factory/head-shift-test
 

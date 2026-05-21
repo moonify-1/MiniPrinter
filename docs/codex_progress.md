@@ -1019,3 +1019,30 @@
   - `powershell -ExecutionPolicy Bypass -File tools\real_simple_print_test.ps1 -DryRun` 通过，默认地址显示为 `http://192.168.0.168`。
 - 下一步建议：
   - 后续真实打印可直接运行 `.\tools\real_simple_print_test.ps1`，不需要再手动传 `-Base`。
+
+## Step 61
+
+- 时间：2026-05-21 20:17:08
+- 状态：已完成
+- 对应任务：修复一键真实打印脚本在 raw 二进制上传时超时的问题
+- 现场现象：
+  - 用户运行 `powershell -ExecutionPolicy Bypass -File .\tools\real_simple_print_test.ps1` 后，`GET /api/v1/info`、`POST /api/v1/safe-off`、`GET /api/v1/status` 和 `POST /api/v1/factory/motor-test?steps=4` 均成功。
+  - 第一个 `PUT /api/v1/print/files/1/chunks/0` 超时，随后设备短时间不可响应；恢复后日志显示重新启动，说明当前 raw 上传路径存在实机超时/重启风险。
+- 结果：
+  - 新增 `PrintFileService_CreateCompleteFromData()`，允许固件内部从内存 raw 数据创建 COMPLETE 打印文件，复用现有 CRC、分片写入和 complete 校验逻辑。
+  - 新增 `POST /api/v1/factory/real-print-test`，固件内部生成 `C0 00` 重复的低密度样张并启动真实打印任务，不再依赖主机二进制上传。
+  - 更新 `tools/real_simple_print_test.py`，一键脚本改为 `info -> safe-off -> status -> factory/motor-test -> factory/real-print-test -> current -> safe-off/delete`。
+  - 一键脚本在真实打印已启动但后续失败时，会先尝试取消当前打印任务，再执行 `safe-off`。
+  - 更新 `tools/api_client.py`，新增 `real-print-test` 子命令，便于手动触发新工厂接口。
+  - 更新 `docs/wifi_api.md`、`docs/apifox/简单打印测试路径.md` 和 `docs/项目结构.md`，说明新接口、脚本路径和旧 raw 上传风险。
+- 验证：
+  - `python -m platformio run` 通过；RAM 21.3%，Flash 24.2%。
+  - `python -m py_compile tools\real_simple_print_test.py tools\api_client.py` 通过。
+  - `python tools\real_simple_print_test.py --dry-run` 通过。
+  - `powershell -ExecutionPolicy Bypass -File tools\real_simple_print_test.ps1 -DryRun` 通过。
+  - `python tools\api_client.py self-test` 通过。
+  - `python tools\api_client.py real-print-test --help` 通过。
+  - `git diff --check` 通过，仅提示当前工作区的 Windows 换行归一化警告。
+- 下一步建议：
+  - 先用 VSCode/PlatformIO 烧录新固件；如果未烧录就运行脚本，会因为设备还没有 `/api/v1/factory/real-print-test` 而返回 `NOT_FOUND`。
+  - 烧录后重新运行 `powershell -ExecutionPolicy Bypass -File .\tools\real_simple_print_test.ps1`，这次不再执行 `PUT /print/files/.../chunks/0`。

@@ -70,6 +70,15 @@ AppErrorCode PrintFileService_WriteChunk(std::uint32_t fileId,
                                          const std::uint8_t* data,
                                          std::uint32_t len);
 
+// 从内存中的 raw 数据直接创建 COMPLETE 文件。
+//
+// 这个接口给固件内部的工厂测试使用：
+// - 外部 WiFi 客户端不需要再上传二进制 body。
+// - 服务内部会计算 CRC32、写入分片并 complete。
+// - 失败时会自动删除半成品槽位，避免占住上传槽。
+AppErrorCode PrintFileService_CreateCompleteFromData(
+    const std::uint8_t* data, std::uint32_t len, std::uint32_t* fileIdOut);
+
 // 完成上传并校验文件。
 //
 // 校验项：

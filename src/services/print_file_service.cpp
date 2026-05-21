@@ -153,6 +153,44 @@ AppErrorCode PrintFileService_WriteChunk(std::uint32_t fileId,
   return APP_OK;
 }
 
+AppErrorCode PrintFileService_CreateCompleteFromData(
+    const std::uint8_t* data, std::uint32_t len, std::uint32_t* fileIdOut) {
+  if (data == nullptr || fileIdOut == nullptr || !IsValidTotalBytes(len)) {
+    return ERR_COMM_FRAME_TOO_LONG;
+  }
+
+  std::uint32_t fileId = 0U;
+  AppErrorCode result = PrintFileService_Create(len, Crc32Calc(data, len),
+                                                &fileId);
+  if (result != APP_OK) {
+    return result;
+  }
+
+  // 复用正式分片写入逻辑，让工厂测试和真实上传走同一套边界检查。
+  for (std::uint32_t offset = 0U; offset < len;
+       offset += PRINT_FILE_CHUNK_SIZE) {
+    const std::uint32_t chunkIndex = offset / PRINT_FILE_CHUNK_SIZE;
+    const std::uint32_t remain = len - offset;
+    const std::uint32_t chunkLen =
+        (remain > PRINT_FILE_CHUNK_SIZE) ? PRINT_FILE_CHUNK_SIZE : remain;
+    result = PrintFileService_WriteChunk(fileId, chunkIndex, &data[offset],
+                                         chunkLen);
+    if (result != APP_OK) {
+      (void)PrintFileService_Delete(fileId);
+      return result;
+    }
+  }
+
+  result = PrintFileService_Complete(fileId);
+  if (result != APP_OK) {
+    (void)PrintFileService_Delete(fileId);
+    return result;
+  }
+
+  *fileIdOut = fileId;
+  return APP_OK;
+}
+
 AppErrorCode PrintFileService_Complete(std::uint32_t fileId) {
   PrintFileSlot* slot = FindSlot(fileId);
   if (slot == nullptr || slot->snapshot.state != PrintFileState::RECEIVING) {

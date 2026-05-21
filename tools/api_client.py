@@ -130,6 +130,17 @@ def cmd_motor_test(args: argparse.Namespace) -> int:
     return print_response(status, body)
 
 
+def cmd_real_print_test(args: argparse.Namespace) -> int:
+    """Queue a firmware-generated low-density real print test."""
+    status, body = http_request(
+        args,
+        "POST",
+        "/api/v1/factory/real-print-test",
+        query={"lines": args.lines, "density": args.density, "heat": args.heat},
+    )
+    return print_response(status, body)
+
+
 def cmd_head_stb_test(args: argparse.Namespace) -> int:
     """Run guarded STB pulse test while firmware keeps VH off."""
     status, body = http_request(
@@ -282,6 +293,14 @@ def build_parser() -> argparse.ArgumentParser:
     motor = sub.add_parser("motor-test", help="factory motor test")
     motor.add_argument("--steps", type=int, default=1)
     motor.set_defaults(func=cmd_motor_test)
+
+    real_print = sub.add_parser(
+        "real-print-test", help="factory firmware-generated real print test"
+    )
+    real_print.add_argument("--lines", type=int, default=16)
+    real_print.add_argument("--density", type=int, default=25)
+    real_print.add_argument("--heat", type=int, default=25)
+    real_print.set_defaults(func=cmd_real_print_test)
 
     shift = sub.add_parser("head-shift-test", help="factory head shift/latch test")
     shift.add_argument("--file", help="raw file; first 48 bytes are used")

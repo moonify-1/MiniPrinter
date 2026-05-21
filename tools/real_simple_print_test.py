@@ -77,7 +77,7 @@ def resolve_payload(path_text: str) -> Path:
 
 
 def make_visible_payload(path: Path, repeat_lines: int) -> bytes:
-    """Load the simple 48-byte line and repeat it into a visible real print."""
+    """Load the documented 48-byte line and repeat it for local verification."""
     if repeat_lines <= 0:
         raise TestAbort("--repeat-lines must be positive")
 
@@ -85,6 +85,15 @@ def make_visible_payload(path: Path, repeat_lines: int) -> bytes:
     if len(data) != api_client.BYTES_PER_LINE:
         raise TestAbort(
             f"payload must be exactly {api_client.BYTES_PER_LINE} bytes; got {len(data)}"
+        )
+    expected = bytes(
+        0xC0 if (index % 2) == 0 else 0x00
+        for index in range(api_client.BYTES_PER_LINE)
+    )
+    if data != expected:
+        raise TestAbort(
+            "factory real-print-test prints the fixed C0/00 low-density pattern; "
+            "use the default simple payload for this one-click test"
         )
     return data * repeat_lines
 
@@ -151,64 +160,22 @@ def require_safe_system_state(status: dict[str, object]) -> None:
         raise TestAbort("device is in SAFE_MODE; clear the hardware fault first")
 
 
-def create_file(client: SimpleNamespace, data: bytes) -> int:
-    """Create a firmware upload slot and return the assigned file_id."""
-    crc = api_client.crc32_ieee(data)
+def start_factory_real_print(
+    client: SimpleNamespace, args: argparse.Namespace
+) -> tuple[int, int]:
+    """Ask firmware to generate the test pattern internally and print it."""
     response = request_json(
         client,
-        "04 create print file",
+        "04 start factory real print",
         "POST",
-        "/api/v1/print/files",
-        query={"size": len(data), "crc32": crc},
-    )
-
-    file_info = response.get("file")
-    if not isinstance(file_info, dict):
-        raise TestAbort("create file response has no file object")
-    return int(file_info["file_id"])
-
-
-def upload_chunks(client: SimpleNamespace, file_id: int, data: bytes) -> None:
-    """Upload the raw print bytes using the firmware 512-byte chunk rule."""
-    for index, offset in enumerate(range(0, len(data), api_client.DEFAULT_CHUNK_SIZE)):
-        chunk = data[offset : offset + api_client.DEFAULT_CHUNK_SIZE]
-        request_json(
-            client,
-            f"05 upload chunk {index}",
-            "PUT",
-            f"/api/v1/print/files/{file_id}/chunks/{index}",
-            data=chunk,
-        )
-
-
-def complete_file(client: SimpleNamespace, file_id: int) -> None:
-    """Ask firmware to verify total bytes and CRC32 before printing."""
-    response = request_json(
-        client,
-        "06 complete print file",
-        "POST",
-        f"/api/v1/print/files/{file_id}/complete",
-    )
-    file_info = response.get("file")
-    if not isinstance(file_info, dict) or file_info.get("state") != "COMPLETE":
-        raise TestAbort("print file did not reach COMPLETE state")
-
-
-def start_print(client: SimpleNamespace, file_id: int, args: argparse.Namespace) -> int:
-    """Start the real low-energy print job from the completed upload file."""
-    response = request_json(
-        client,
-        "07 start real print",
-        "POST",
-        "/api/v1/print/jobs",
+        "/api/v1/factory/real-print-test",
         query={
-            "file_id": file_id,
-            "copies": 1,
+            "lines": args.repeat_lines,
             "density": args.density,
             "heat": args.heat,
         },
     )
-    return int(response["job_id"])
+    return int(response["job_id"]), int(response["file_id"])
 
 
 def wait_for_done(client: SimpleNamespace, args: argparse.Namespace, lines: int) -> None:
@@ -216,7 +183,7 @@ def wait_for_done(client: SimpleNamespace, args: argparse.Namespace, lines: int)
     for attempt in range(1, args.poll_count + 1):
         response = request_json(
             client,
-            f"08 poll print job {attempt}",
+            f"05 poll print job {attempt}",
             "GET",
             "/api/v1/print/jobs/current",
         )
@@ -243,6 +210,20 @@ def best_effort_safe_off(client: SimpleNamespace) -> None:
         )
     except Exception as exc:  # noqa: BLE001 - cleanup must not hide the root error.
         print(f"\n[cleanup warning] safe-off failed: {exc}", file=sys.stderr)
+
+
+def best_effort_cancel_current(client: SimpleNamespace) -> None:
+    """Cancel an unfinished print job before forcing outputs safe."""
+    try:
+        request_json(
+            client,
+            "cleanup cancel current print",
+            "POST",
+            "/api/v1/print/jobs/current/cancel",
+            required=False,
+        )
+    except Exception as exc:  # noqa: BLE001 - cleanup must not hide the root error.
+        print(f"\n[cleanup warning] cancel failed: {exc}", file=sys.stderr)
 
 
 def best_effort_delete_file(client: SimpleNamespace, file_id: int | None) -> None:
@@ -280,6 +261,8 @@ def run(args: argparse.Namespace) -> int:
 
     client = SimpleNamespace(base=args.base, timeout=args.timeout)
     file_id: int | None = None
+    job_id: int | None = None
+    completed = False
     try:
         info = request_json(client, "00 require real firmware", "GET", "/api/v1/info")
         require_real_firmware(info)
@@ -293,14 +276,14 @@ def run(args: argparse.Namespace) -> int:
             "/api/v1/factory/motor-test",
             query={"steps": args.motor_steps},
         )
-        file_id = create_file(client, data)
-        upload_chunks(client, file_id, data)
-        complete_file(client, file_id)
-        job_id = start_print(client, file_id, args)
+        job_id, file_id = start_factory_real_print(client, args)
         wait_for_done(client, args, lines)
+        completed = True
         print(f"\nOK: real print job {job_id} finished. Check the paper for visible dots.")
         return 0
     finally:
+        if job_id is not None and not completed:
+            best_effort_cancel_current(client)
         best_effort_safe_off(client)
         if not args.keep_file:
             best_effort_delete_file(client, file_id)

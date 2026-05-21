@@ -24,6 +24,7 @@
 #include "services/param_service.h"
 #include "services/print_file_service.h"
 #include "services/print_service.h"
+#include "services/print_spooler.h"
 #include "services/sensor_service.h"
 
 namespace {
@@ -46,6 +47,12 @@ struct RawBodyBuffer {
 };
 
 RawBodyBuffer g_rawBody = {};
+
+// 工厂真实打印测试使用的固定样张缓冲。
+//
+// 不放在函数栈上，是因为 HTTP/WebServer 任务已经比较吃栈；
+// 3KB 固定数组放全局区更容易看清内存占用，也避免打印测试时栈溢出。
+std::uint8_t g_factoryPrintData[mp::PRINT_FILE_MAX_BYTES] = {};
 
 void SendJson(int status, const String& json);
 
@@ -820,6 +827,114 @@ void HandlePrintJobCreate() {
   SendJson(202, json);
 }
 
+void FillFactoryVisiblePrintData(std::uint32_t lines) {
+  // 每行 48 字节 = 384 dots。
+  // 这里生成 C0 00 重复的低密度竖向点迹：
+  // - 0xC0 的二进制是 11000000，表示每 16 个点里只打前 2 个点。
+  // - 点数低，第一次真实打印更温和。
+  // - 多行重复后，纸面上比单行更容易看到实际效果。
+  const std::uint32_t totalBytes =
+      lines * static_cast<std::uint32_t>(mp::LINE_BUFFER_DATA_SIZE);
+  for (std::uint32_t index = 0U; index < totalBytes; ++index) {
+    g_factoryPrintData[index] = ((index % 2U) == 0U) ? 0xC0U : 0x00U;
+  }
+}
+
+void HandleFactoryRealPrintTest() {
+  if (!RequireNotSafeMode("factory real print is blocked in SAFE_MODE")) {
+    return;
+  }
+
+  if (!mp::PrintService_IsRealPrintHardwareEnabled()) {
+    SendErrorJson(409, "HW_DISABLED",
+                  "real print needs hw_stepper and hw_thermal_head",
+                  mp::ERR_HW_DISABLED);
+    return;
+  }
+
+  if (mp::PrintApp_IsActive()) {
+    SendErrorJson(409, "PRINT_BUSY", "current print job is active",
+                  mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  std::uint32_t lines = 16U;
+  std::uint32_t density = 25U;
+  std::uint32_t heat = 25U;
+  if (!ParseOptionalU32Arg("lines", 16U, &lines) ||
+      !ParseOptionalU32Arg("density", 25U, &density) ||
+      !ParseOptionalU32Arg("heat", 25U, &heat)) {
+    SendErrorJson(400, "BAD_REQUEST",
+                  "lines/density/heat must be numbers", mp::ERR_COMM_CRC);
+    return;
+  }
+
+  if (lines == 0U || lines > mp::PRINT_FILE_MAX_LINES || density > 100U ||
+      heat > 100U) {
+    SendErrorJson(400, "PARAM_OUT_OF_RANGE",
+                  "lines must be 1..max; density/heat must be 0..100",
+                  mp::ERR_COMM_FRAME_TOO_LONG);
+    return;
+  }
+
+  FillFactoryVisiblePrintData(lines);
+
+  std::uint32_t fileId = 0U;
+  const std::uint32_t totalBytes =
+      lines * static_cast<std::uint32_t>(mp::LINE_BUFFER_DATA_SIZE);
+  mp::AppErrorCode result = mp::PrintFileService_CreateCompleteFromData(
+      g_factoryPrintData, totalBytes, &fileId);
+  if (result != mp::APP_OK) {
+    SendErrorJson(500, "PRINT_FILE_CREATE_FAILED",
+                  "failed to create internal print file", result);
+    return;
+  }
+
+  const std::uint32_t jobId = g_nextWifiJobId++;
+  if (!mp::PrintService_RequestStart(jobId)) {
+    (void)mp::PrintFileService_Delete(fileId);
+    SendErrorJson(500, "PRINT_START_FAILED",
+                  "failed to queue print start", mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  result = mp::PrintFileService_QueueForPrint(fileId, jobId);
+  if (result != mp::APP_OK) {
+    (void)mp::PrintService_RequestCancel(jobId);
+    (void)mp::PrintFileService_Delete(fileId);
+    SendErrorJson(500, "PRINT_QUEUE_FAILED",
+                  "failed to queue factory print lines", result);
+    return;
+  }
+
+  if (!mp::PrintService_RequestEnd(jobId)) {
+    (void)mp::PrintService_RequestCancel(jobId);
+    (void)mp::PrintFileService_Delete(fileId);
+    SendErrorJson(500, "PRINT_END_FAILED", "failed to queue print end",
+                  mp::ERR_QUEUE_FULL);
+    return;
+  }
+
+  g_currentWifiJobId = jobId;
+  g_currentWifiFileId = fileId;
+
+  String json = JsonHeader(true, "OK", "factory real print queued");
+  json += ",\"job_id\":";
+  json += jobId;
+  json += ",\"file_id\":";
+  json += fileId;
+  json += ",\"line_total\":";
+  json += lines;
+  json += ",\"total_bytes\":";
+  json += totalBytes;
+  json += ",\"density\":";
+  json += density;
+  json += ",\"heat\":";
+  json += heat;
+  json += "}";
+  SendJson(202, json);
+}
+
 void HandlePrintJobCurrent() {
   const mp::PrintAppSnapshot print = mp::PrintApp_GetSnapshot();
   String json = JsonHeader(true, "OK", "current print job");
@@ -1360,6 +1475,8 @@ void RegisterRoutes() {
   g_server.on("/api/v1/feed", HTTP_POST, HandleFeed);
   g_server.on("/api/v1/factory/motor-test", HTTP_POST,
               HandleFactoryMotorTest);
+  g_server.on("/api/v1/factory/real-print-test", HTTP_POST,
+              HandleFactoryRealPrintTest);
   g_server.on("/api/v1/factory/head-shift-test", HTTP_POST,
               HandleFactoryHeadShiftTest, HandleRawBody);
   g_server.on("/api/v1/factory/head-stb-test", HTTP_POST,
